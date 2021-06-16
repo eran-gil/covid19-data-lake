@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using CovidDataLake.DAL.Pubsub;
 using CovidDataLake.DAL.Utils;
 using CovidDataLake.DAL.Write;
 using Microsoft.AspNetCore.Mvc;
@@ -13,24 +12,33 @@ namespace CovidDataLake.WebApi.Controllers
 
     [Route("api/v1/[controller]")]
     [ApiController]
-    public class DataLakeController : ControllerBase
+    public class DataLakeController : Controller
     {
         private readonly IDataLakeWriter _dataLakeWriter;
+        private readonly IProducer _messageProducer;
 
-        public DataLakeController(IDataLakeWriter dataLakeWriter)
+        public DataLakeController(IDataLakeWriter dataLakeWriter, IProducerFactory producerFactory)
         {
             _dataLakeWriter = dataLakeWriter;
+            _messageProducer = producerFactory.CreateProducer(Dns.GetHostName());
         }
 
         [HttpPost]
         [Route("PostNewFile")]
-        public async Task<ActionResult> PostNewFile([BindRequired] [FromQuery(Name = "file_path")] string fileName)
+        public async Task<ActionResult> PostNewFile([BindRequired] [FromQuery(Name = "filename")] string filename)
         {
-            using (var stream = _dataLakeWriter.CreateFileStream(fileName.GetExtensionFromPath()))
+            var fileType = filename.GetExtensionFromPath();
+            using (var stream = _dataLakeWriter.CreateFileStream(fileType, out var outputFilepath))
             {
                 try
                 {
                     await Request.Body.CopyToAsync(stream);
+                    var result = await _messageProducer.SendMessage(outputFilepath);
+                    if (!result)
+                    {
+                        await _dataLakeWriter.DeleteFileAsync(outputFilepath);
+                        return StatusCode(500, "Failed to send the file to kafka, the file was deleted from the data lake");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -38,8 +46,13 @@ namespace CovidDataLake.WebApi.Controllers
                     return StatusCode(500, e);
                 }
             }
-            
             return Ok();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            _messageProducer.Dispose();
+            base.Dispose(disposing);
         }
     }
 }
