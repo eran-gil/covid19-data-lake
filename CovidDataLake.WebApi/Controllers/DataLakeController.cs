@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using CovidDataLake.DAL.Pubsub;
 using CovidDataLake.DAL.Utils;
 using CovidDataLake.DAL.Write;
+using CovidDataLake.WebApi.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
@@ -15,11 +16,13 @@ namespace CovidDataLake.WebApi.Controllers
     public class DataLakeController : Controller
     {
         private readonly IDataLakeWriter _dataLakeWriter;
+        private readonly IFileTypeValidator _fileTypeValidator;
         private readonly IProducer _messageProducer;
 
-        public DataLakeController(IDataLakeWriter dataLakeWriter, IProducerFactory producerFactory)
+        public DataLakeController(IDataLakeWriter dataLakeWriter, IProducerFactory producerFactory, IFileTypeValidator fileTypeValidator)
         {
             _dataLakeWriter = dataLakeWriter;
+            _fileTypeValidator = fileTypeValidator;
             _messageProducer = producerFactory.CreateProducer(Dns.GetHostName());
         }
 
@@ -28,6 +31,11 @@ namespace CovidDataLake.WebApi.Controllers
         public async Task<ActionResult> PostNewFile([BindRequired] [FromQuery(Name = "filename")] string filename)
         {
             var fileType = filename.GetExtensionFromPath();
+            if (!_fileTypeValidator.IsFileTypeValid(fileType))
+            {
+                return BadRequest("The file type is not supported in this data lake.");
+            }
+
             using (var stream = _dataLakeWriter.CreateFileStream(fileType, out var outputFilepath))
             {
                 try
