@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CovidDataLake.DataLake
+namespace CovidDataLake.ContentIndexer
 {
     class Program
     {
