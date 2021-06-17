@@ -2,6 +2,6 @@
 {
     public interface IProducerFactory
     {
-        IProducer CreateProducer(string producerId);
+        IProducer CreateProducer(string clientId);
     }
 }

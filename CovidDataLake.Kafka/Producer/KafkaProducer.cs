@@ -7,12 +7,12 @@ namespace CovidDataLake.DAL.Pubsub
     {
         private readonly IProducer<string, string> _producer;
 
-        public KafkaProducer(string servers, string producerId)
+        public KafkaProducer(string servers, string clientId)
         {
             var config = new ProducerConfig
             {
                 BootstrapServers = servers,
-                ClientId = producerId
+                ClientId = clientId
             };
             _producer = new ProducerBuilder<string, string>(config).Build();
         }

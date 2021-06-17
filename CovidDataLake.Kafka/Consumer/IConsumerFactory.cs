@@ -2,6 +2,6 @@
 {
     public interface IConsumerFactory
     {
-        IConsumer CreateConsumer(string clientId, string groupId);
+        IConsumer CreateConsumer(string clientId);
     }
 }

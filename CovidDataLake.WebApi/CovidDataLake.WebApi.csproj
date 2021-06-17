@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CovidDataLake.DAL\CovidDataLake.DAL.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
   </ItemGroup>
 
 </Project>

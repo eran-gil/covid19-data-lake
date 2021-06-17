@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CovidDataLake.DAL.Write;
 using Microsoft.AspNetCore.Mvc;
+using CovidDataLake.WebApi.Validation;
+using CovidDataLake.Kafka.Producer.Configuration;
 
 namespace CovidDataLake.WebApi
 {
@@ -20,7 +22,9 @@ namespace CovidDataLake.WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            var x = Configuration.GetValue<KafkaProducerConfiguration>("Kafka");
             services.AddSingleton<IDataLakeWriter, BasicDataLakeWriter>();
+            services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSwaggerGen();
         }
 
