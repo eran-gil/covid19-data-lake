@@ -19,16 +19,20 @@ namespace CovidDataLake.WebApi
 
         public IConfiguration Configuration { get; }
 
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             var kafkaConfig = new KafkaProducerConfiguration();
-            Configuration.Bind("KafkaProducer", kafkaConfig);
-            services.AddSingleton<IDataLakeWriter, BasicDataLakeWriter>();
+            var storageConfig = new DataLakeWriterConfiguration();
+            Configuration.Bind("Kafka", kafkaConfig);
+            Configuration.Bind("Storage", storageConfig);
+            services.AddSingleton(kafkaConfig);
+            services.AddSingleton(storageConfig);
+            services.AddSingleton<IDataLakeWriter, StreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
-            services.AddSingleton(kafkaConfig);
             services.AddSwaggerGen();
         }
 

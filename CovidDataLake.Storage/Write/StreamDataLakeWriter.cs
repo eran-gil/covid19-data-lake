@@ -4,8 +4,15 @@ using System.Threading.Tasks;
 
 namespace CovidDataLake.Storage.Write
 {
-    public class BasicDataLakeWriter : IDataLakeWriter
+    public class StreamDataLakeWriter : IDataLakeWriter
     {
+        private readonly DataLakeWriterConfiguration _configuration;
+
+        public StreamDataLakeWriter(DataLakeWriterConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         public Stream CreateFileStream(string fileType, out string filepath)
         {
             var path = GeneratePath(fileType);
@@ -37,7 +44,7 @@ namespace CovidDataLake.Storage.Write
 
         private string GeneratePath(string fileType)
         {
-            var path = string.Empty;
+            var path = _configuration.BasePath;
             return $"{path}.{fileType}";
         }
         
