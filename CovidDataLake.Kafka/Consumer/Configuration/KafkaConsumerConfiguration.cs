@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace CovidDataLake.Kafka.Consumer.Configuration
 {

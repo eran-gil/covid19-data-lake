@@ -33,7 +33,7 @@ namespace CovidDataLake.Kafka.Consumer
             {
                 _kafkaConsumer.Commit(consumeResult);
             }
-            catch (KafkaException e)
+            catch (KafkaException)
             {
                 //TODO: log
             }

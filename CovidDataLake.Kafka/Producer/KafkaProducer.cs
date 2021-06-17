@@ -24,7 +24,7 @@ namespace CovidDataLake.Kafka.Producer
             {
                 await _producer.ProduceAsync("testSubject", message);
             }
-            catch(ProduceException<string, string> e)
+            catch(ProduceException<string, string>)
             {
                 //TODO: add logging
                 return false;

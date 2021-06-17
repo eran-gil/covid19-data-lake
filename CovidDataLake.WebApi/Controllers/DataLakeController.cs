@@ -4,11 +4,9 @@ using System.Threading.Tasks;
 using CovidDataLake.DAL.Utils;
 using CovidDataLake.DAL.Write;
 using CovidDataLake.Kafka.Producer;
-using CovidDataLake.Kafka.Producer.Configuration;
 using CovidDataLake.WebApi.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Configuration;
 
 namespace CovidDataLake.WebApi.Controllers
 {
@@ -31,9 +29,9 @@ namespace CovidDataLake.WebApi.Controllers
 
         [HttpGet]
         [Route("Get")]
-        public void GetBla()
+        public ActionResult GetBla()
         {
-            return;
+            return Ok();
         }
 
         [HttpPost]
