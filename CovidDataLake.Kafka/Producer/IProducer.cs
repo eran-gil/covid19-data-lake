@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Producer
 {
     public interface IProducer : IDisposable
     {

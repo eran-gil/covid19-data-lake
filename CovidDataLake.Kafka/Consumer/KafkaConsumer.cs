@@ -1,7 +1,7 @@
 ﻿using System;
 using Confluent.Kafka;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Consumer
 {
     public class KafkaConsumer : IConsumer
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Consumer
 {
     public interface IConsumer : IDisposable
     {

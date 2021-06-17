@@ -1,16 +1,16 @@
 ﻿using CovidDataLake.Kafka.Consumer.Configuration;
 using System.Linq;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Consumer
 {
     public class KafkaConsumerFactory : IConsumerFactory
     {
         private readonly KafkaConsumerConfiguration _configuration;
+
         public KafkaConsumerFactory(KafkaConsumerConfiguration configuration)
         {
             _configuration = configuration;
         }
-
         public IConsumer CreateConsumer(string clientId)
         {
             var servers = _configuration.Instances

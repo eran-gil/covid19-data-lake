@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Confluent.Kafka;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Producer
 {
     public class KafkaProducer : IProducer
     {

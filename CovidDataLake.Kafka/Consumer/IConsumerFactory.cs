@@ -1,4 +1,6 @@
-﻿namespace CovidDataLake.DAL.Pubsub
+﻿using CovidDataLake.Kafka.Consumer.Configuration;
+
+namespace CovidDataLake.Kafka.Consumer
 {
     public interface IConsumerFactory
     {

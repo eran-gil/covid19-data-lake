@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CovidDataLake.DAL.Write;
+using CovidDataLake.Kafka.Producer;
+using CovidDataLake.Kafka.Producer.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using CovidDataLake.WebApi.Validation;
-using CovidDataLake.Kafka.Producer.Configuration;
 
 namespace CovidDataLake.WebApi
 {
@@ -22,9 +23,12 @@ namespace CovidDataLake.WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            var x = Configuration.GetValue<KafkaProducerConfiguration>("Kafka");
+            var kafkaConfig = new KafkaProducerConfiguration();
+            Configuration.Bind("KafkaProducer", kafkaConfig);
             services.AddSingleton<IDataLakeWriter, BasicDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
+            services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
+            services.AddSingleton(kafkaConfig);
             services.AddSwaggerGen();
         }
 
@@ -51,7 +55,7 @@ namespace CovidDataLake.WebApi
 
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Willy API");
+                c.SwaggerEndpoint("../swagger/v1/swagger.json", "COVID-19 Data Lake");
             });
         }
     }

@@ -1,4 +1,6 @@
-﻿namespace CovidDataLake.DAL.Pubsub
+﻿using CovidDataLake.Kafka.Producer.Configuration;
+
+namespace CovidDataLake.Kafka.Producer
 {
     public interface IProducerFactory
     {

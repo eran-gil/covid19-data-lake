@@ -1,7 +1,7 @@
 ﻿using CovidDataLake.Kafka.Producer.Configuration;
 using System.Linq;
 
-namespace CovidDataLake.DAL.Pubsub
+namespace CovidDataLake.Kafka.Producer
 {
     public class KafkaProducerFactory : IProducerFactory
     {
