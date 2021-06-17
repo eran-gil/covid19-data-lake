@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 
-namespace CovidDataLake.DAL.Write
+namespace CovidDataLake.Storage.Write
 {
     public interface IDataLakeWriter
     {

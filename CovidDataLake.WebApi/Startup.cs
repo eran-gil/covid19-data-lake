@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using CovidDataLake.DAL.Write;
 using CovidDataLake.Kafka.Producer;
 using CovidDataLake.Kafka.Producer.Configuration;
+using CovidDataLake.Storage.Write;
 using Microsoft.AspNetCore.Mvc;
 using CovidDataLake.WebApi.Validation;
 

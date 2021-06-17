@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace CovidDataLake.DAL.Utils
+namespace CovidDataLake.Storage.Utils
 {
     public static class FilePathExtensions
     {

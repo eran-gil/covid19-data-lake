@@ -10,8 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CovidDataLake.DAL\CovidDataLake.DAL.csproj" />
+    <ProjectReference Include="..\CovidDataLake.DAL\CovidDataLake.Storage.csproj" />
     <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />
   </ItemGroup>
 
 </Project>

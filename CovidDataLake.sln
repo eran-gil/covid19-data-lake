@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.ContentIndexe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.MetadataIndexer", "CovidDataLake.MetadataIndexer\CovidDataLake.MetadataIndexer.csproj", "{987B867A-172B-4702-A9B1-7D0FFF39DEBF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.DAL", "CovidDataLake.DAL\CovidDataLake.DAL.csproj", "{F778D619-C87C-4393-B42B-346741401667}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Storage", "CovidDataLake.Storage\CovidDataLake.Storage.csproj", "{F778D619-C87C-4393-B42B-346741401667}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Kafka", "CovidDataLake.Kafka\CovidDataLake.Kafka.csproj", "{B4D1575F-29EC-4841-BF5C-26AF2DC4C218}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Kafka", "CovidDataLake.Kafka\CovidDataLake.Kafka.csproj", "{B4D1575F-29EC-4841-BF5C-26AF2DC4C218}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
