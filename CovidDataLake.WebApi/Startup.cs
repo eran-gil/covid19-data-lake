@@ -24,12 +24,9 @@ namespace CovidDataLake.WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            var kafkaConfig = new KafkaProducerConfiguration();
-            var storageConfig = new DataLakeWriterConfiguration();
-            Configuration.Bind("Kafka", kafkaConfig);
-            Configuration.Bind("Storage", storageConfig);
-            services.AddSingleton(kafkaConfig);
-            services.AddSingleton(storageConfig);
+            BindConfigurationToContainer<KafkaProducerConfiguration>(services, "Kafka");
+            BindConfigurationToContainer<DataLakeWriterConfiguration>(services, "Storage");
+            BindConfigurationToContainer<FileTypeValidationConfiguration>(services, "Validation");
             services.AddSingleton<IDataLakeWriter, StreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
@@ -37,6 +34,7 @@ namespace CovidDataLake.WebApi
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
@@ -61,6 +59,13 @@ namespace CovidDataLake.WebApi
             {
                 c.SwaggerEndpoint("../swagger/v1/swagger.json", "COVID-19 Data Lake");
             });
+        }
+
+        private void BindConfigurationToContainer<T>(IServiceCollection services, string sectionName) where T : class, new()
+        {
+            var configSection = new T();
+            Configuration.Bind(sectionName, configSection);
+            services.AddSingleton(configSection);
         }
     }
 }

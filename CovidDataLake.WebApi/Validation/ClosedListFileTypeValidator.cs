@@ -6,15 +6,10 @@ namespace CovidDataLake.WebApi.Validation
     {
         private readonly HashSet<string> _allowedFileTypes;
 
-        public ClosedListFileTypeValidator()
+        public ClosedListFileTypeValidator(FileTypeValidationConfiguration configuration)
         {
             //TODO: take file types from configuration
-            _allowedFileTypes = new HashSet<string>
-            {
-                "csv",
-                "pdf",
-                "doc"
-            };
+            _allowedFileTypes = new HashSet<string>(configuration.AllowedFileTypes);
         }
         public bool IsFileTypeValid(string fileType)
         {

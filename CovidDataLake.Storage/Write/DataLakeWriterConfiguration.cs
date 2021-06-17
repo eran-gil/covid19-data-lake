@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CovidDataLake.Storage.Write
+﻿namespace CovidDataLake.Storage.Write
 {
     public class DataLakeWriterConfiguration
     {
