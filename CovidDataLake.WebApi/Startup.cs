@@ -1,3 +1,4 @@
+using CovidDataLake.Common;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -24,9 +25,9 @@ namespace CovidDataLake.WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-            BindConfigurationToContainer<KafkaProducerConfiguration>(services, "Kafka");
-            BindConfigurationToContainer<DataLakeWriterConfiguration>(services, "Storage");
-            BindConfigurationToContainer<FileTypeValidationConfiguration>(services, "Validation");
+            services.BindConfigurationToContainer<KafkaProducerConfiguration>(Configuration, "Kafka");
+            services.BindConfigurationToContainer<DataLakeWriterConfiguration>(Configuration, "Storage");
+            services.BindConfigurationToContainer<FileTypeValidationConfiguration>(Configuration, "Validation");
             services.AddSingleton<IDataLakeWriter, StreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
@@ -59,13 +60,6 @@ namespace CovidDataLake.WebApi
             {
                 c.SwaggerEndpoint("../swagger/v1/swagger.json", "COVID-19 Data Lake");
             });
-        }
-
-        private void BindConfigurationToContainer<T>(IServiceCollection services, string sectionName) where T : class, new()
-        {
-            var configSection = new T();
-            Configuration.Bind(sectionName, configSection);
-            services.AddSingleton(configSection);
         }
     }
 }
