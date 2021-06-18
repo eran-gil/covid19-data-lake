@@ -17,7 +17,7 @@ namespace CovidDataLake.Kafka.Producer
                 .Select(instance => $"{instance.Host}:{instance.Port}")
                 .Aggregate((s1, s2) => $"{s1},{s2}");
 
-            var producer = new KafkaProducer(servers, clientId);
+            var producer = new KafkaProducer(servers, clientId, _configuration.Topic);
             return producer;
         }
     }

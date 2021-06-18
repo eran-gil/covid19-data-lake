@@ -1,5 +1,5 @@
-﻿using System;
-using CovidDataLake.Common;
+﻿using CovidDataLake.Common;
+using CovidDataLake.ContentIndexer.Orchestration;
 using CovidDataLake.Kafka.Consumer;
 using CovidDataLake.Kafka.Consumer.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -16,10 +16,10 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddLogging();
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
             serviceCollection.AddSingleton<IConsumerFactory, KafkaConsumerFactory>();
+            serviceCollection.AddSingleton<IOrchestrator, KafkaOrchestrator>();
             var serviceProvider = serviceCollection.BuildServiceProvider();
-            //TODO: create orchestrator that takes from kafka, moves to csv extractor and then to writer (also bloom)
-            //TODO: erase
-            Console.WriteLine(serviceProvider);
+            var orchestrator = serviceProvider.GetService<IOrchestrator>();
+            orchestrator.StartOrchestration();
         }
 
         private static IConfigurationRoot BuildConfiguration(string[] args)

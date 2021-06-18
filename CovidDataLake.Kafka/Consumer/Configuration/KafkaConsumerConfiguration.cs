@@ -6,6 +6,8 @@ namespace CovidDataLake.Kafka.Consumer.Configuration
     {
         public IEnumerable<KafkaInstance> Instances { get; set; }
         public string GroupId { get; set; }
+
+        public string Topic { get; set; }
     }
 
     

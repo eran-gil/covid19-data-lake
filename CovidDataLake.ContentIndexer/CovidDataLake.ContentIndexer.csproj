@@ -18,12 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
     <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Extraction\" />
-    <Folder Include="Indexing\" />
-    <Folder Include="Orchestration\" />
+    <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />
   </ItemGroup>
 
 </Project>

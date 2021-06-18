@@ -5,10 +5,12 @@ namespace CovidDataLake.Kafka.Producer
 {
     public class KafkaProducer : IProducer
     {
+        private readonly string _topic;
         private readonly IProducer<string, string> _producer;
 
-        public KafkaProducer(string servers, string clientId)
+        public KafkaProducer(string servers, string clientId, string topic)
         {
+            _topic = topic;
             var config = new ProducerConfig
             {
                 BootstrapServers = servers,
@@ -22,7 +24,7 @@ namespace CovidDataLake.Kafka.Producer
             var message = CreateMessageFromFileName(filename);
             try
             {
-                await _producer.ProduceAsync("testSubject", message);
+                await _producer.ProduceAsync(_topic, message);
             }
             catch(ProduceException<string, string>)
             {

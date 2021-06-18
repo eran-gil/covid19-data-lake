@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Confluent.Kafka;
 
 namespace CovidDataLake.Kafka.Consumer
@@ -25,15 +26,15 @@ namespace CovidDataLake.Kafka.Consumer
             _kafkaConsumer.Subscribe(topic);
         }
 
-        public void Consume(Action<string> handleMessage)
+        public void Consume(Action<string> handleMessage, CancellationToken cancellationToken)
         {
-            var consumeResult = _kafkaConsumer.Consume();
-            handleMessage(consumeResult.Message.Value);
             try
             {
+                var consumeResult = _kafkaConsumer.Consume(cancellationToken);
+                handleMessage(consumeResult.Message.Value);
                 _kafkaConsumer.Commit(consumeResult);
             }
-            catch (KafkaException)
+            catch (Exception)
             {
                 //TODO: log
             }
