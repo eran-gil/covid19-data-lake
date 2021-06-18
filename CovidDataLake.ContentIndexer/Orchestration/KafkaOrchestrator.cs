@@ -24,6 +24,7 @@ namespace CovidDataLake.ContentIndexer.Orchestration
             _consumer = consumerFactory.CreateConsumer(Dns.GetHostName());
             _cancellationTokenSource = new CancellationTokenSource();
         }
+        //TODO: create orchestrator that takes from kafka, moves to csv extractor and then to writer (also bloom)
 
         public void StartOrchestration()
         {
@@ -38,8 +39,11 @@ namespace CovidDataLake.ContentIndexer.Orchestration
         {
             var fileType = filename.GetExtensionFromPath();
             var fileExtractor = _extractors.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
-            var csv = fileExtractor.ExtractCsvFromFile(filename);
-            _contentIndexer.IndexCsv(csv);
+            var csvs = fileExtractor.ExtractCsvFromFile(filename);
+            foreach (var csv in csvs)
+            {
+               _contentIndexer.IndexCsv(csv);
+            }
         }
 
         public void Dispose()

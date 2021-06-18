@@ -1,8 +1,10 @@
-﻿namespace CovidDataLake.ContentIndexer.Extraction
+﻿using System.Collections.Generic;
+
+namespace CovidDataLake.ContentIndexer.Extraction
 {
     public interface IFileCsvExtractor
     {
         bool IsFileTypeSupported(string fileType);
-        object ExtractCsvFromFile(string filename);
+        IEnumerable<object> ExtractCsvFromFile(string filename);
     }
 }
