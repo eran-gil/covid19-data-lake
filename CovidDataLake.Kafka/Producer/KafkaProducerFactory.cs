@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using CovidDataLake.Kafka.Producer.Configuration;
+﻿using CovidDataLake.Kafka.Producer.Configuration;
 using System.Linq;
 
 namespace CovidDataLake.Kafka.Producer

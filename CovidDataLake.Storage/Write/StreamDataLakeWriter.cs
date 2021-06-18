@@ -15,9 +15,10 @@ namespace CovidDataLake.Storage.Write
 
         public Stream CreateFileStream(string fileType, out string filepath)
         {
-            var path = GeneratePath(fileType);
-            var fileStream = File.Create(path);
-            filepath = path;
+            filepath = GeneratePath(fileType);
+            var directoryPath = Path.GetDirectoryName(filepath);
+            Directory.CreateDirectory(directoryPath);
+            var fileStream = File.Create(filepath);
             return fileStream;
         }
 
@@ -44,8 +45,10 @@ namespace CovidDataLake.Storage.Write
 
         private string GeneratePath(string fileType)
         {
-            var path = _configuration.BasePath;
-            return $"{path}\\1{fileType}";
+            var today = DateTime.Today;
+            var path = $"{_configuration.BasePath}\\{today.Year}\\{today.Month}\\{today.Day}";
+            var filename = Guid.NewGuid().ToString();
+            return $"{path}\\{filename}{fileType}";
         }
         
     }
