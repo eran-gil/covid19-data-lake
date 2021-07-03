@@ -1,7 +1,9 @@
-﻿namespace CovidDataLake.ContentIndexer.Indexing
+﻿using CovidDataLake.ContentIndexer.TableWrappers;
+
+namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IContentIndexer
     {
-        void IndexCsv(object csv);
+        void IndexTable(IFileTableWrapper tableWrapper);
     }
 }

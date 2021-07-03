@@ -11,15 +11,15 @@ namespace CovidDataLake.ContentIndexer.Orchestration
 {
     public class KafkaOrchestrator : IOrchestrator
     {
-        private readonly IEnumerable<IFileCsvExtractor> _extractors;
+        private readonly IEnumerable<IFileTableWrapperFactory> _tableWrapperFactories;
         private readonly IContentIndexer _contentIndexer;
         private readonly IConsumer _consumer;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
-        public KafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IFileCsvExtractor> extractors,
+        public KafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IFileTableWrapperFactory> tableWrapperFactories,
             IContentIndexer contentIndexer)
         {
-            _extractors = extractors;
+            _tableWrapperFactories = tableWrapperFactories;
             _contentIndexer = contentIndexer;
             _consumer = consumerFactory.CreateConsumer(Dns.GetHostName());
             _cancellationTokenSource = new CancellationTokenSource();
@@ -38,12 +38,9 @@ namespace CovidDataLake.ContentIndexer.Orchestration
         private void HandleMessage(string filename)
         {
             var fileType = filename.GetExtensionFromPath();
-            var fileExtractor = _extractors.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
-            var csvs = fileExtractor.ExtractCsvFromFile(filename);
-            foreach (var csv in csvs)
-            {
-               _contentIndexer.IndexCsv(csv);
-            }
+            var tableWrapperFactory = _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
+            var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(filename);
+            _contentIndexer.IndexTable(tableWrapper);
         }
 
         public void Dispose()
