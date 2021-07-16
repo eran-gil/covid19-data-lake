@@ -1,4 +1,5 @@
-﻿using CovidDataLake.Common;
+﻿using System.Threading.Tasks;
+using CovidDataLake.Common;
 using CovidDataLake.Common.Hashing;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Orchestration;
@@ -11,7 +12,7 @@ namespace CovidDataLake.ContentIndexer
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var configuration = BuildConfiguration(args);
             IServiceCollection serviceCollection = new ServiceCollection();
@@ -20,10 +21,10 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IConsumerFactory, KafkaConsumerFactory>();
             serviceCollection.AddSingleton<IOrchestrator, KafkaOrchestrator>();
             serviceCollection.AddSingleton<IStringHash, Md5StringHash>();
-            serviceCollection.AddSingleton<IIndexFileWriter, NeedleInHaystackIndexFileWriter>();
+            serviceCollection.AddSingleton<IIndexFileWriter, AmazonIndexFileWriter>();
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
-            orchestrator.StartOrchestration();
+            await orchestrator.StartOrchestration();
         }
 
         private static IConfigurationRoot BuildConfiguration(string[] args)

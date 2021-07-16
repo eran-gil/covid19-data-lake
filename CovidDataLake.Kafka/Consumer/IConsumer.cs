@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CovidDataLake.Kafka.Consumer
 {
     public interface IConsumer : IDisposable
     {
         void Subscribe(string topic);
-        void Consume(Action<string> handleMessage, CancellationToken cancellationToken);
+        Task Consume(Func<string, Task> handleMessage, CancellationToken cancellationToken);
     }
 }

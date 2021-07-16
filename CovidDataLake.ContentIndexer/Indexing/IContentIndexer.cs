@@ -1,9 +1,10 @@
-﻿using CovidDataLake.ContentIndexer.TableWrappers;
+﻿using System.Threading.Tasks;
+using CovidDataLake.ContentIndexer.TableWrappers;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IContentIndexer
     {
-        void IndexTable(IFileTableWrapper tableWrapper);
+        Task IndexTable(IFileTableWrapper tableWrapper);
     }
 }

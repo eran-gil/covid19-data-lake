@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Kafka.Consumer;
@@ -26,21 +27,21 @@ namespace CovidDataLake.ContentIndexer.Orchestration
         }
         //TODO: create orchestrator that takes from kafka, moves to csv extractor and then to writer (also bloom)
 
-        public void StartOrchestration()
+        public async Task StartOrchestration()
         {
             while (true)
             {
-                _consumer.Consume(HandleMessage, _cancellationTokenSource.Token);
+                await _consumer.Consume(HandleMessage, _cancellationTokenSource.Token);
             }
             // ReSharper disable once FunctionNeverReturns
         }
 
-        private void HandleMessage(string filename)
+        private async Task HandleMessage(string filename)
         {
             var fileType = filename.GetExtensionFromPath();
             var tableWrapperFactory = _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(filename);
-            _contentIndexer.IndexTable(tableWrapper);
+            await _contentIndexer.IndexTable(tableWrapper);
         }
 
         public void Dispose()

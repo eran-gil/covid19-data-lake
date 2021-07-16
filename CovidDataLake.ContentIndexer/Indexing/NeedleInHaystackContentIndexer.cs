@@ -12,13 +12,15 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly IIndexFileWriter _indexFileWriter;
         private readonly IRootIndexAccess _rootIndexAccess;
 
-        public NeedleInHaystackContentIndexer(IStringHash hasher, IIndexFileWriter indexFileWriter, IRootIndexAccess rootIndexAccess)
+        public NeedleInHaystackContentIndexer(IStringHash hasher, IIndexFileWriter indexFileWriter,
+            IRootIndexAccess rootIndexAccess)
         {
             _hasher = hasher;
             _indexFileWriter = indexFileWriter;
             _rootIndexAccess = rootIndexAccess;
         }
-        public void IndexTable(IFileTableWrapper tableWrapper)
+
+        public async Task IndexTable(IFileTableWrapper tableWrapper)
         {
             var columns = tableWrapper.GetColumns();
             var hashedColumns = new Dictionary<string, IList<ulong>>();
@@ -28,25 +30,30 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
 
             var valuesToFilesMapping = hashedColumns.SelectMany(GetFileMappingForColumn);
-            
+
             var fileGroups = valuesToFilesMapping.GroupBy(kvp => kvp.Value);
 
-            var updateIndexTasks = fileGroups.Select(WriteValuesGroupToFile).ToArray();
-            Task.WaitAll(updateIndexTasks);
+            var updateIndexTasks = fileGroups
+                .Select((group) => WriteValuesGroupToFile(group, tableWrapper.Filename))
+                .ToArray();
+            await Task.WhenAll(updateIndexTasks);
         }
 
-        private async Task WriteValuesGroupToFile(IGrouping<string, KeyValuePair<ulong, string>> fileGroup)
+        private async Task WriteValuesGroupToFile(IGrouping<string, KeyValuePair<ulong, string>> fileGroup,
+            string originFilename)
         {
-            await _indexFileWriter.WriteValuesToIndexFile(fileGroup.Select(kvp => kvp.Key), fileGroup.Key);
+            await _indexFileWriter.UpdateIndexFileWithValues(
+                fileGroup.Select(kvp => kvp.Key).ToList(),
+                fileGroup.Key, originFilename);
         }
 
         private IList<KeyValuePair<ulong, string>> GetFileMappingForColumn(KeyValuePair<string, IList<ulong>> column)
         {
-            var mapping = column.Value.AsParallel().Select(async val => 
-                new KeyValuePair<ulong, string>(val, await _rootIndexAccess.GetFileNameForColumnAndValue(column.Key, val)))
+            var mapping = column.Value.AsParallel().Select(async val =>
+                    new KeyValuePair<ulong, string>(val,
+                        await _rootIndexAccess.GetFileNameForColumnAndValue(column.Key, val)))
                 .Select(t => t.Result).ToList();
             return mapping;
         }
     }
-
 }
