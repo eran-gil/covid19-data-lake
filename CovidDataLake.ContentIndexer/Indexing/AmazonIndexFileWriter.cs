@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
@@ -27,13 +28,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
         {
             var downloadedFilename = await DownloadIndexFileFromAmazon(indexFilename);
-            using var inputIndexFile = File.OpenRead(downloadedFilename);
-
-            inputIndexFile.Seek(-4, SeekOrigin.End);
-            var metadataOffset = GetMetadataOffsetFromFile(inputIndexFile);
-            inputIndexFile.Seek(0, SeekOrigin.Begin);
-
-            var indexValues = GetIndexValuesToWriteFromFile(values, originFilename, metadataOffset, inputIndexFile);
+            
+            var originalIndexValues = GetIndexValuesFromFile(downloadedFilename);
+            var indexValues = GetUpdatedIndexValues(originalIndexValues, values, originFilename);
 
             var outputFilename = downloadedFilename + "_new";
             using var outputFile = File.OpenWrite(outputFilename);
@@ -56,15 +53,27 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task UploadNewIndexToAmazon(string indexFilename, string outputFilename)
         {
             var uploadSession = await _awsClient.InitiateMultipartUploadAsync(_bucketName, indexFilename);
+            if (uploadSession.HttpStatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception("couldn't upload to amazon");
+            }
             var uploadPartRequest = new UploadPartRequest
             {
                 Key = indexFilename, BucketName = _bucketName, UploadId = uploadSession.UploadId,
                 FilePath = outputFilename
             };
             var uploadPartResponse = await _awsClient.UploadPartAsync(uploadPartRequest);
+            if (uploadPartResponse.HttpStatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception("couldn't upload to amazon");
+            }
             var completeUploadRequest = new CompleteMultipartUploadRequest
                 {BucketName = _bucketName, Key = indexFilename, UploadId = uploadSession.UploadId};
             var completeMultipartUploadResponse = await _awsClient.CompleteMultipartUploadAsync(completeUploadRequest);
+            if (completeMultipartUploadResponse.HttpStatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception("couldn't upload to amazon");
+            }
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
@@ -81,39 +90,56 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rowsMetadata;
         }
 
-        private static async IAsyncEnumerable<IndexValueModel> GetIndexValuesToWriteFromFile(IList<ulong> values,
-            string originFilename, long metadataOffset, Stream inputFile)
+        private static async IAsyncEnumerable<IndexValueModel> GetIndexValuesFromFile(string filename)
         {
+            using var inputFile = File.OpenRead(filename);
+            inputFile.Seek(-4, SeekOrigin.End);
+            var metadataOffset = GetMetadataOffsetFromFile(inputFile);
+            inputFile.Seek(0, SeekOrigin.Begin);
             using var inputStreamReader = new StreamReader(inputFile);
-
             while (inputFile.Position < metadataOffset)
             {
                 var currentLine = await inputStreamReader.ReadLineAsync();
                 var currentIndexValue = JsonSerializer.Deserialize<IndexValueModel>(currentLine);
-                if (currentIndexValue == null || !values.Any())
+                if (currentIndexValue == null)
                 {
                     throw new InvalidDataException("The index is not in the expected format");
-                }
-
-                var currentInputValue = values.First();
-                if (currentInputValue == currentIndexValue.Value)
-                {
-                    currentIndexValue.Files.Add(originFilename);
-                    values.RemoveAt(0);
-                }
-
-                if (currentInputValue < currentIndexValue.Value)
-                {
-                    var newIndexValue = new IndexValueModel(currentInputValue, new List<string> {originFilename});
-                    values.RemoveAt(0);
-                    yield return newIndexValue;
                 }
 
                 yield return currentIndexValue;
             }
         }
 
-        private static void WriteMetadataOffsetToFile(FileStream outputFile, long newMetadataOffset)
+        private static async IAsyncEnumerable<IndexValueModel> GetUpdatedIndexValues(
+            IAsyncEnumerable<IndexValueModel> originalIndexValues,
+            IList<ulong> values, string originFilename)
+        {
+            await foreach(var indexValue in originalIndexValues)
+            {
+                if (!values.Any())
+                {
+                    yield return indexValue;
+                    continue;
+                }
+
+                var currentInputValue = values.First();
+                if (currentInputValue == indexValue.Value)
+                {
+                    indexValue.Files.Add(originFilename);
+                    values.RemoveAt(0);
+                }
+                if (currentInputValue < indexValue.Value)
+                {
+                    var newIndexValue = new IndexValueModel(currentInputValue, new List<string> {originFilename});
+                    values.RemoveAt(0);
+                    yield return newIndexValue;
+                }
+
+                yield return indexValue;
+            }
+        }
+
+        private static void WriteMetadataOffsetToFile(Stream outputFile, long newMetadataOffset)
         {
             using var binaryWriter = new BinaryWriter(outputFile);
             binaryWriter.Write(newMetadataOffset);
