@@ -26,7 +26,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
         {
-            var downloadedFilename = await DownloadIndexFile(indexFilename);
+            var downloadedFilename = await DownloadIndexFileFromAmazon(indexFilename);
             using var inputIndexFile = File.OpenRead(downloadedFilename);
 
             inputIndexFile.Seek(-4, SeekOrigin.End);
@@ -48,7 +48,23 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 await WriteObjectToFile(metadataSection, outputStreamWriter);
             }
 
+            outputFile.Close();
             WriteMetadataOffsetToFile(outputFile, newMetadataOffset);
+            await UploadNewIndexToAmazon(indexFilename, outputFilename);
+        }
+
+        private async Task UploadNewIndexToAmazon(string indexFilename, string outputFilename)
+        {
+            var uploadSession = await _awsClient.InitiateMultipartUploadAsync(_bucketName, indexFilename);
+            var uploadPartRequest = new UploadPartRequest
+            {
+                Key = indexFilename, BucketName = _bucketName, UploadId = uploadSession.UploadId,
+                FilePath = outputFilename
+            };
+            var uploadPartResponse = await _awsClient.UploadPartAsync(uploadPartRequest);
+            var completeUploadRequest = new CompleteMultipartUploadRequest
+                {BucketName = _bucketName, Key = indexFilename, UploadId = uploadSession.UploadId};
+            var completeMultipartUploadResponse = await _awsClient.CompleteMultipartUploadAsync(completeUploadRequest);
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
@@ -134,7 +150,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return metadataIndex;
         }
 
-        private async Task<string> DownloadIndexFile(string indexFilename)
+        private async Task<string> DownloadIndexFileFromAmazon(string indexFilename)
         {
             var downloadedFilename = Guid.NewGuid().ToString();
             var getRequest = new GetObjectRequest
