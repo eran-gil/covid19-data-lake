@@ -44,17 +44,12 @@ namespace CovidDataLake.WebApi.Controllers
                 return BadRequest("The file type is not supported in this data lake.");
             }
 
-            using (var stream = _dataLakeWriter.CreateFileStream(fileType, out var outputFilepath))
+            var outputFilepath = _dataLakeWriter.GenerateFilePath(fileType);
+            using (var stream = _dataLakeWriter.CreateFileStream(outputFilepath))
             {
                 try
                 {
                     await Request.Body.CopyToAsync(stream);
-                    var result = await _messageProducer.SendMessage(outputFilepath);
-                    if (!result)
-                    {
-                        await _dataLakeWriter.DeleteFileAsync(outputFilepath);
-                        return StatusCode(500, "Failed to send the file to kafka, the file was deleted from the data lake");
-                    }
                 }
                 catch (Exception e)
                 {
@@ -62,7 +57,11 @@ namespace CovidDataLake.WebApi.Controllers
                     return StatusCode(500, e);
                 }
             }
-            return Ok();
+            var result = await _messageProducer.SendMessage(outputFilepath);
+            if (result) return Ok();
+
+            await _dataLakeWriter.DeleteFileAsync(outputFilepath);
+            return StatusCode(500, "Failed to send the file to kafka, the file was deleted from the data lake");
         }
 
         protected override void Dispose(bool disposing)

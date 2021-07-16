@@ -28,7 +28,7 @@ namespace CovidDataLake.WebApi
             services.BindConfigurationToContainer<KafkaProducerConfiguration>(Configuration, "Kafka");
             services.BindConfigurationToContainer<DataLakeWriterConfiguration>(Configuration, "Storage");
             services.BindConfigurationToContainer<FileTypeValidationConfiguration>(Configuration, "Validation");
-            services.AddSingleton<IDataLakeWriter, StreamDataLakeWriter>();
+            services.AddSingleton<IDataLakeWriter, FileStreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
             services.AddSwaggerGen();

@@ -5,8 +5,8 @@ namespace CovidDataLake.Storage.Write
 {
     public interface IDataLakeWriter
     {
-        Stream CreateFileStream(string fileType, out string filepath);
-        bool WriteFile(byte[] bytes, string fileType);
+        string GenerateFilePath(string fileType);
+        Stream CreateFileStream(string filepath);
         Task DeleteFileAsync(string filePath);
     }
 }
