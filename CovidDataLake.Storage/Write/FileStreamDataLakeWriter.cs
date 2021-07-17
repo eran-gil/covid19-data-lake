@@ -4,11 +4,11 @@ using System.Threading.Tasks;
 
 namespace CovidDataLake.Storage.Write
 {
-    public class StreamDataLakeWriter : IDataLakeWriter
+    public class FileStreamDataLakeWriter : IDataLakeWriter
     {
         private readonly DataLakeWriterConfiguration _configuration;
 
-        public StreamDataLakeWriter(DataLakeWriterConfiguration configuration)
+        public FileStreamDataLakeWriter(DataLakeWriterConfiguration configuration)
         {
             _configuration = configuration;
         }
