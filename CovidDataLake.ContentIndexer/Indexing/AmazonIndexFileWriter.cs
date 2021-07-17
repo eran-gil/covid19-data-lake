@@ -11,11 +11,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public class AmazonIndexFileWriter : IIndexFileWriter
     {
-        private readonly IAmazonS3Adapter _amazonAdapter;
+        private readonly IAmazonAdapter _amazonAdapter;
         private readonly string _bucketName; //TODO: initialize from config
         private readonly int _numOfRowsPerMetadataSection; //TODO: move to config
 
-        public AmazonIndexFileWriter(IAmazonS3Adapter amazonAdapter)
+        public AmazonIndexFileWriter(IAmazonAdapter amazonAdapter)
         {
             _amazonAdapter = amazonAdapter;
             _bucketName = "test"; //TODO: inject from config
@@ -24,7 +24,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
         {
-            var downloadedFilename = await _amazonAdapter.DownloadObjectFromAmazon(_bucketName, indexFilename);
+            var downloadedFilename = await _amazonAdapter.DownloadObject(_bucketName, indexFilename);
             
             var originalIndexValues = GetIndexValuesFromFile(downloadedFilename);
             var indexValues = GetUpdatedIndexValues(originalIndexValues, values, originFilename);
@@ -43,7 +43,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
             outputFile.Write(new byte[]{});
             WriteMetadataOffsetToFile(outputFile, newMetadataOffset);
-            await _amazonAdapter.UploadFileToS3(_bucketName, indexFilename, outputFilename);
+            await _amazonAdapter.UploadObject(_bucketName, indexFilename, outputFilename);
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
