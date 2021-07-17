@@ -61,6 +61,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static async IAsyncEnumerable<IndexValueModel> GetIndexValuesFromFile(string filename)
         {
+            if (new FileInfo(filename).Length == 0)
+            {
+                yield break;
+            }
             using var inputFile = File.OpenRead(filename);
             inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
             var metadataOffset = GetMetadataOffsetFromFile(inputFile);
@@ -105,6 +109,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 }
 
                 yield return indexValue;
+            }
+
+            if (!values.Any()) yield  break;
+            foreach (var currentValue in values)
+            {
+                var newIndexValue = new IndexValueModel(currentValue, new List<string> { originFilename });
+                yield return newIndexValue;
             }
         }
 
