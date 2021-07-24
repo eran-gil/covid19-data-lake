@@ -93,9 +93,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    while (currentIndexRow != null && currentIndexRow?.ColumnName != updateRow.ColumnName
-                           || currentIndexRow?.FileName != updateRow.FileName
-                           && currentIndexRow?.Min < updateRow.Min)
+                    while (currentIndexRow != null && (currentIndexRow.ColumnName != updateRow.ColumnName
+                           || currentIndexRow.FileName != updateRow.FileName
+                           && currentIndexRow.Min < updateRow.Min))
                     {
                         yield return currentIndexRow;
                         currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
@@ -115,7 +115,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    if (currentIndexRow?.Min > updateRow.Min)
+                    if (currentIndexRow.Min > updateRow.Min)
                     {
                         yield return updateRow;
                     }
