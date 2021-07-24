@@ -93,20 +93,24 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    while (currentIndexRow?.ColumnName != updateRow.ColumnName
+                    while (currentIndexRow != null && currentIndexRow?.ColumnName != updateRow.ColumnName
                            || currentIndexRow?.FileName != updateRow.FileName
                            && currentIndexRow?.Min < updateRow.Min)
                     {
-                        yield return indexRowsEnumerator.Current;
+                        yield return currentIndexRow;
                         currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
                     }
 
-                    if (updateRow.FileName == currentIndexRow?.FileName)
+                    if (currentIndexRow == null)
                     {
-                        var indexRow = indexRowsEnumerator.Current;
-                        indexRow.Min = updateRow.Min;
-                        indexRow.Max = updateRow.Max;
-                        yield return indexRow;
+                        continue;
+                    }
+
+                    if (updateRow.FileName == currentIndexRow.FileName)
+                    {
+                        currentIndexRow.Min = updateRow.Min;
+                        currentIndexRow.Max = updateRow.Max;
+                        yield return currentIndexRow;
                         currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
                         continue;
                     }
