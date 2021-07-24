@@ -25,6 +25,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
         {
             //todo: handle split if necessary
+            //todo: handle file does not exist yet
             var downloadedFilename = await _amazonAdapter.DownloadObject(_bucketName, indexFilename);
             
             var originalIndexValues = GetIndexValuesFromFile(downloadedFilename);
