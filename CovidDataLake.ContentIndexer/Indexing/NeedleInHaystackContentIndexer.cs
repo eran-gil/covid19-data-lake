@@ -23,20 +23,27 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task IndexTable(IFileTableWrapper tableWrapper)
         {
             var columns = tableWrapper.GetColumns();
-            var hashedColumns = new Dictionary<string, IList<ulong>>();
-            foreach (var columnId in columns.Keys)
-            {
-                hashedColumns[columnId] = columns[columnId].Select(s => _hasher.HashStringToUlong(s)).ToList();
-            }
+            var hashedColumns = HashColumnValues(columns);
 
             var valuesToFilesMapping = hashedColumns.SelectMany(GetFileMappingForColumn);
 
             var fileGroups = valuesToFilesMapping.GroupBy(kvp => kvp.Value);
 
             var updateIndexTasks = fileGroups
-                .Select((group) => WriteValuesGroupToFile(group, tableWrapper.Filename))
+                .Select(group => WriteValuesGroupToFile(group, tableWrapper.Filename))
                 .ToArray();
             await Task.WhenAll(updateIndexTasks);
+        }
+
+        private Dictionary<string, IEnumerable<ulong>> HashColumnValues(IEnumerable<KeyValuePair<string, IEnumerable<string>>> columns)
+        {
+            var hashedColumns = new Dictionary<string, IEnumerable<ulong>>();
+            foreach (var (columnId, columnValues) in columns)
+            {
+                hashedColumns[columnId] = columnValues.Select(s => _hasher.HashStringToUlong(s));
+            }
+
+            return hashedColumns;
         }
 
         private async Task WriteValuesGroupToFile(IGrouping<string, KeyValuePair<ulong, string>> fileGroup,
@@ -47,12 +54,12 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 fileGroup.Key, originFilename);
         }
 
-        private IList<KeyValuePair<ulong, string>> GetFileMappingForColumn(KeyValuePair<string, IList<ulong>> column)
+        private IEnumerable<KeyValuePair<ulong, string>> GetFileMappingForColumn(KeyValuePair<string, IEnumerable<ulong>> column)
         {
             var mapping = column.Value.AsParallel().Select(async val =>
                     new KeyValuePair<ulong, string>(val,
                         await _rootIndexAccess.GetFileNameForColumnAndValue(column.Key, val)))
-                .Select(t => t.Result).ToList();
+                .Select(t => t.Result);
             return mapping;
         }
     }

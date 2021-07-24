@@ -5,6 +5,6 @@ namespace CovidDataLake.ContentIndexer.TableWrappers
     public interface IFileTableWrapper
     {
         string Filename { get; set; }
-        Dictionary<string, IList<string>> GetColumns();
+        IEnumerable<KeyValuePair<string, IEnumerable<string>>> GetColumns();
     }
 }
