@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using CovidDataLake.ContentIndexer.Indexing.Models;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
@@ -10,17 +13,22 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             _cache = cache;
         }
-        public Task UpdateRanges(object mapping)
+
+        public async Task UpdateColumnRanges(RootIndexColumnMappings columnMappings)
         {
-            throw new System.NotImplementedException();
+            //todo: create root index update/replace for amazon
+            await _cache.UpdateColumnRanges(columnMappings);
         }
 
         public async Task<string> GetFileNameForColumnAndValue(string column, ulong val)
         {
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
+            Console.WriteLine();
             //TODO: handle missing stuff
             return null;
         }
+
+        
     }
 }
