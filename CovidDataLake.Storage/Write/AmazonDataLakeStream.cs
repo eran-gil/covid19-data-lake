@@ -78,7 +78,7 @@ namespace CovidDataLake.Storage.Write
             {
                 lock (_lockObject)
                 {
-                    _amazonAdapter.UploadObject(_bucketName, _targetFilename, _fileStream.Name);
+                    _amazonAdapter.UploadObjectAsync(_bucketName, _targetFilename, _fileStream.Name);
                 }
             }
             _writtenToAmazon = true;

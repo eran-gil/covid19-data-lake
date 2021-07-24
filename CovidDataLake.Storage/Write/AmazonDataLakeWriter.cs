@@ -42,7 +42,7 @@ namespace CovidDataLake.Storage.Write
 
         public async Task DeleteFileAsync(string filePath)
         {
-            await _amazonAdapter.DeleteObject(_bucketName, filePath);
+            await _amazonAdapter.DeleteObjectAsync(_bucketName, filePath);
         }
     }
 }

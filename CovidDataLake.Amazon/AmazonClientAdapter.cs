@@ -15,7 +15,7 @@ namespace CovidDataLake.Amazon
         {
             _awsClient = new AmazonS3Client(); //TODO: inject config
         }
-        public async Task UploadObject(string bucketName, string objectKey, string sourceFilename)
+        public async Task UploadObjectAsync(string bucketName, string objectKey, string sourceFilename)
         {
             var uploadSession = await _awsClient.InitiateMultipartUploadAsync(bucketName, objectKey);
             if (uploadSession.HttpStatusCode != HttpStatusCode.OK)
@@ -43,7 +43,7 @@ namespace CovidDataLake.Amazon
             }
         }
 
-        public async Task<string> DownloadObject(string bucketName, string objectKey)
+        public async Task<string> DownloadObjectAsync(string bucketName, string objectKey)
         {
             var downloadedFilename = Guid.NewGuid().ToString();
             var getRequest = new GetObjectRequest
@@ -57,7 +57,7 @@ namespace CovidDataLake.Amazon
             return downloadedFilename;
         }
 
-        public async Task DeleteObject(string bucketName, string objectKey)
+        public async Task DeleteObjectAsync(string bucketName, string objectKey)
         {
             await _awsClient.DeleteObjectAsync(bucketName, objectKey);
         }

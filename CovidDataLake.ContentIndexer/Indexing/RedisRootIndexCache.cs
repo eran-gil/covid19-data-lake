@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 using StackExchange.Redis;
 
@@ -9,25 +11,28 @@ namespace CovidDataLake.ContentIndexer.Indexing
     class RedisRootIndexCache : IRootIndexCache
     {
         private readonly IConnectionMultiplexer _connection;
+        private readonly ILock _lockMechanism;
         private readonly TimeSpan _lockTimeSpan = TimeSpan.FromSeconds(10);
-        private const string RedisKeyPrefix = "ROOT_INDEX::";
-        private const string RedisLockKeyPrefix = "ROOT_INDEX_LOCK::";
-        public RedisRootIndexCache(IConnectionMultiplexer connection)
+        private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
+        private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
+
+        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism)
         {
             _connection = connection;
+            _lockMechanism = lockMechanism;
         }
 
-        public async Task UpdateColumnRanges(RootIndexColumnMappings columnMappings)
+        public async Task UpdateColumnRanges(IList<RootIndexColumnUpdate> columnMappings)
         {
             var db = _connection.GetDatabase();
-            foreach (var (key, indexRows) in columnMappings)
+            foreach (var columnUpdate in columnMappings)
             {
-                var redisKey = GetRedisKeyForColumn(key);
-                var redisLockKey = GetRedisLockKeyForColumn(key);
-                var sortedSetEntries = indexRows.Select(CreateSortedSetEntryFromColumnMapping).ToArray();
-                await db.LockTakeAsync(redisLockKey, 1, _lockTimeSpan);
+                var redisKey = GetRedisKeyForColumn(columnUpdate.ColumnName);
+                var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
+                var sortedSetEntries = columnUpdate.Rows.Select(CreateSortedSetEntryFromColumnMapping).ToArray();
+                await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
                 await db.SortedSetAddAsync(redisKey, sortedSetEntries);
-                await db.LockReleaseAsync(redisLockKey, 0);
+                await _lockMechanism.ReleaseLockAsync(redisLockKey);
             }
         }
 
@@ -37,9 +42,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
             //todo: need to test what happens when there's no index yet for column or for value...
             var redisKey = GetRedisKeyForColumn(column);
             var redisLockKey = GetRedisLockKeyForColumn(column);
-            await db.LockTakeAsync(redisLockKey, 1, _lockTimeSpan);
+            await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
             var indexFileValue = (await db.SortedSetRangeByScoreAsync(redisKey, val, take: 1)).FirstOrDefault();
-            await db.LockReleaseAsync(redisLockKey, 0);
+            await _lockMechanism.ReleaseLockAsync(redisLockKey);
             if (indexFileValue == default) return null;
             var indexFileName = indexFileValue.ToString();
             return indexFileName;

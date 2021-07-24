@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Amazon;
+using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
-using Utf8Json;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
@@ -26,10 +26,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             //todo: handle split if necessary
             //todo: handle file does not exist yet
-            var downloadedFilename = await _amazonAdapter.DownloadObject(_bucketName, indexFilename);
+            var downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
             
             var originalIndexValues = GetIndexValuesFromFile(downloadedFilename);
-            var indexValues = GetUpdatedIndexValues(originalIndexValues, values, originFilename);
+            var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values, originFilename);
 
             var outputFilename = downloadedFilename + "_new";
             using var outputFile = File.OpenWrite(outputFilename);
@@ -41,11 +41,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
             foreach (var metadataSection in metadataSections)
             {
-                await WriteObjectToFile(metadataSection, outputStreamWriter);
+                await outputStreamWriter.WriteObjectToLineAsync(metadataSection);
             }
             outputFile.Write(new byte[]{});
-            WriteMetadataOffsetToFile(outputFile, newMetadataOffset);
-            await _amazonAdapter.UploadObject(_bucketName, indexFilename, outputFilename);
+            outputFile.WriteBinaryLongToStream(newMetadataOffset);
+            await _amazonAdapter.UploadObjectAsync(_bucketName, indexFilename, outputFilename);
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
@@ -56,36 +56,26 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var rowMetadata = new FileRowMetadata(outputStreamWriter.BaseStream.Position, indexValue.Value);
                 rowsMetadata.Add(rowMetadata);
-                await WriteObjectToFile(indexValue, outputStreamWriter);
+                await outputStreamWriter.WriteObjectToLineAsync(indexValue);
             }
             return rowsMetadata;
         }
 
-        private static async IAsyncEnumerable<IndexValueModel> GetIndexValuesFromFile(string filename)
+        private static IAsyncEnumerable<IndexValueModel> GetIndexValuesFromFile(string filename)
         {
             if (new FileInfo(filename).Length == 0)
             {
-                yield break;
+                return AsyncEnumerable.Empty<IndexValueModel>();
             }
             using var inputFile = File.OpenRead(filename);
             inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
-            var metadataOffset = GetMetadataOffsetFromFile(inputFile);
+            var metadataOffset = inputFile.ReadBinaryLongFromStream();
             inputFile.Seek(0, SeekOrigin.Begin);
-            using var inputStreamReader = new StreamReader(inputFile);
-            while (inputFile.Position < metadataOffset)
-            {
-                var currentLine = await inputStreamReader.ReadLineAsync();
-                var currentIndexValue = JsonSerializer.Deserialize<IndexValueModel>(currentLine);
-                if (currentIndexValue == null)
-                {
-                    throw new InvalidDataException("The index is not in the expected format");
-                }
-
-                yield return currentIndexValue;
-            }
+            var rows = inputFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(metadataOffset);
+            return rows;
         }
 
-        private static async IAsyncEnumerable<IndexValueModel> GetUpdatedIndexValues(
+        private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
             IAsyncEnumerable<IndexValueModel> originalIndexValues,
             IList<ulong> values, string originFilename)
         {
@@ -134,28 +124,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var metadataSection = new IndexMetadataSectionModel(min, max, offset);
                 yield return metadataSection;
             }
-        }
-
-        private static async Task WriteObjectToFile<T>(T indexValue, StreamWriter outputStreamWriter)
-        {
-            if (outputStreamWriter == null) throw new ArgumentNullException(nameof(outputStreamWriter));
-            await JsonSerializer.SerializeAsync(outputStreamWriter.BaseStream, indexValue);
-            await outputStreamWriter.WriteLineAsync("");
-        }
-
-        private static long GetMetadataOffsetFromFile(FileStream indexFile)
-        {
-            if (indexFile == null) throw new ArgumentNullException(nameof(indexFile));
-            using var binaryReader = new BinaryReader(indexFile);
-            var metadataIndex = binaryReader.ReadInt64();
-
-            return metadataIndex;
-        }
-
-        private static void WriteMetadataOffsetToFile(Stream outputFile, long newMetadataOffset)
-        {
-            using var binaryWriter = new BinaryWriter(outputFile);
-            binaryWriter.Write(newMetadataOffset);
         }
     }
 }
