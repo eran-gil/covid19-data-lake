@@ -6,7 +6,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IRootIndexAccess
     {
-        Task UpdateColumnRanges(IList<RootIndexColumnUpdate> columnMappings);
+        Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings);
         Task<string> GetFileNameForColumnAndValue(string column, ulong val);
     }
 }

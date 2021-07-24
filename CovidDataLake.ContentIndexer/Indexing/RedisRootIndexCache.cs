@@ -12,7 +12,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
     {
         private readonly IConnectionMultiplexer _connection;
         private readonly ILock _lockMechanism;
-        private readonly TimeSpan _lockTimeSpan = TimeSpan.FromSeconds(10);
+        private readonly TimeSpan _lockTimeSpan = TimeSpan.FromSeconds(10); //todo: get from config
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
 
@@ -22,7 +22,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _lockMechanism = lockMechanism;
         }
 
-        public async Task UpdateColumnRanges(IList<RootIndexColumnUpdate> columnMappings)
+        public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
             var db = _connection.GetDatabase();
             foreach (var columnUpdate in columnMappings)

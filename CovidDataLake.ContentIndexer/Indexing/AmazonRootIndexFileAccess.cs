@@ -29,7 +29,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _rootIndexName = ""; //todo: initialize from config
         }
 
-        public async Task UpdateColumnRanges(IList<RootIndexColumnUpdate> columnMappings)
+        public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
             await _lockMechanism.TakeLockAsync(CommonKeys.RootIndexFileLockKey, _lockTimeSpan);
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
@@ -57,7 +57,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
             var update = new RootIndexColumnUpdate
                 {ColumnName = column, Rows = new List<RootIndexRow> {relevantIndexRow}};
-            await _cache.UpdateColumnRanges(new List<RootIndexColumnUpdate>{update});
+            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>{update});
 
             return relevantIndexRow.FileName;
         }
@@ -93,9 +93,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    while (currentIndexRow != null && (currentIndexRow.ColumnName != updateRow.ColumnName
-                           || currentIndexRow.FileName != updateRow.FileName
-                           && currentIndexRow.Min < updateRow.Min))
+                    while (currentIndexRow != null && 
+                           (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
+                            || currentIndexRow.FileName != updateRow.FileName
+                            && currentIndexRow.Min < updateRow.Min))
                     {
                         yield return currentIndexRow;
                         currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
@@ -103,6 +104,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
                     if (currentIndexRow == null)
                     {
+                        continue;
+                    }
+
+                    if (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName,
+                        StringComparison.InvariantCulture) < 0)
+                    {
+                        yield return updateRow;
                         continue;
                     }
 
@@ -119,6 +127,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     {
                         yield return updateRow;
                     }
+
                 }
             }
 
