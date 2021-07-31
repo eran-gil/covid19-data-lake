@@ -1,5 +1,4 @@
-﻿using System;
-using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
+﻿using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 
 namespace CovidDataLake.ContentIndexer.Extraction
 {

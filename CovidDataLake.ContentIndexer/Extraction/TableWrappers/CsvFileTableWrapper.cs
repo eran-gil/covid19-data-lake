@@ -26,11 +26,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IEnumerable<string>>> GetColumns()
         {
-            return _csvReader.HeaderRecord.Select(column =>
-            {
-                var columnValues = GetColumnValues(column).Where(IsValueNotNull);
-                return new KeyValuePair<string, IEnumerable<string>>(column, columnValues);
-            });
+            return _csvReader.HeaderRecord.ToDictionary(column => column, GetColumnValues);
         }
 
         private IEnumerable<string> GetColumnValues(string columnName)
@@ -40,16 +36,13 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
                 while (_csvReader.Read())
                 {
                     var record = _csvReader.GetRecord<dynamic>();
-                    yield return record.GetType().GetProperty(columnName).GetValue(record, null);
+                    var propValue = record.GetType().GetProperty(columnName).GetValue(record, null);
+                    if (propValue != null)
+                        yield return propValue;
                 }
 
                 _streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
             }
-        }
-
-        private bool IsValueNotNull(object val)
-        {
-            return val != null;
         }
 
         public void Dispose()
