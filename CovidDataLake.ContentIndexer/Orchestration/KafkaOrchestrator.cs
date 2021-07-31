@@ -40,7 +40,7 @@ namespace CovidDataLake.ContentIndexer.Orchestration
             var fileType = filename.GetExtensionFromPath();
             var tableWrapperFactory = _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
             using var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(filename);
-            await _contentIndexer.IndexTable(tableWrapper);
+            await _contentIndexer.IndexTableAsync(tableWrapper);
         }
 
         public void Dispose()

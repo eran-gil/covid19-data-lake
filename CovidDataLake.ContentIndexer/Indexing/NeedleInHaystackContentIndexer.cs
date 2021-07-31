@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Common.Hashing;
@@ -20,7 +20,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _rootIndexAccess = rootIndexAccess;
         }
 
-        public async Task IndexTable(IFileTableWrapper tableWrapper)
+        public async Task IndexTableAsync(IFileTableWrapper tableWrapper)
         {
             var columns = tableWrapper.GetColumns();
             var hashedColumns = HashColumnValues(columns);
