@@ -1,5 +1,5 @@
 ﻿using System.Threading.Tasks;
-using CovidDataLake.ContentIndexer.TableWrappers;
+using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {

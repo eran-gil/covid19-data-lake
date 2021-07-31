@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Hashing;
+using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Orchestration;
 using CovidDataLake.Kafka.Consumer;
@@ -22,6 +23,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IOrchestrator, KafkaOrchestrator>();
             serviceCollection.AddSingleton<IStringHash, Md5StringHash>();
             serviceCollection.AddSingleton<IIndexFileWriter, AmazonIndexFileWriter>();
+            serviceCollection.AddSingleton<IFileTableWrapperFactory, CsvFileTableWrapperFactory>();
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
             await orchestrator.StartOrchestration();

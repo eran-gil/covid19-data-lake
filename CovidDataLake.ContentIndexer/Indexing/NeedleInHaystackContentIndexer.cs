@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Common.Hashing;
-using CovidDataLake.ContentIndexer.TableWrappers;
+using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
