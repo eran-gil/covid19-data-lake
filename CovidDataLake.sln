@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Storage", "Co
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Common", "CovidDataLake.Common\CovidDataLake.Common.csproj", "{7A717B34-6777-4E34-8118-8F4DDA8C3FEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Amazon", "CovidDataLake.Amazon\CovidDataLake.Amazon.csproj", "{AE841607-09AC-4A40-B799-3AE4717CC016}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Amazon", "CovidDataLake.Amazon\CovidDataLake.Amazon.csproj", "{AE841607-09AC-4A40-B799-3AE4717CC016}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Bloom", "CovidDataLake.Bloom\CovidDataLake.Bloom.csproj", "{FC36F83A-61A7-43A3-9845-06AE975535A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

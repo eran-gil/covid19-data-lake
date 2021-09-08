@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Amazon;
+using CovidDataLake.Bloom;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
@@ -37,15 +38,49 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var rowsMetadata = await WriteIndexValuesToFile(indexValues, outputStreamWriter);
 
             var newMetadataOffset = outputFile.Position;
+            await AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
+
+            var bloomOffset = outputFile.Position;
+            await AddUpdatedBloomFilterToIndex(values, downloadedFilename, outputStreamWriter);
+            outputFile.WriteBinaryLongToStream(newMetadataOffset);
+            outputFile.WriteBinaryLongToStream(bloomOffset);
+            await _amazonAdapter.UploadObjectAsync(_bucketName, indexFilename, outputFilename);
+        }
+
+        private async Task AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata, StreamWriter outputStreamWriter)
+        {
             var metadataSections = CreateMetadataFromRows(rowsMetadata);
 
             foreach (var metadataSection in metadataSections)
             {
                 await outputStreamWriter.WriteObjectToLineAsync(metadataSection);
             }
-            outputFile.Write(new byte[]{});
-            outputFile.WriteBinaryLongToStream(newMetadataOffset);
-            await _amazonAdapter.UploadObjectAsync(_bucketName, indexFilename, outputFilename);
+        }
+
+        private static async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, string downloadedFilename,
+            TextWriter outputStreamWriter)
+        {
+            var serializedBloomFilter = GetSerializedBloomFilterFromFile(downloadedFilename);
+            using var bloomFilter = GetBloomFilter(serializedBloomFilter);
+            foreach (var value in values)
+            {
+                bloomFilter.AddToFilter(value);
+            }
+
+            var outputBloomFilter = bloomFilter.Serialize();
+            await outputStreamWriter.WriteLineAsync(outputBloomFilter);
+        }
+
+        private static PythonBloomFilter GetBloomFilter(string serializedBloomFilter)
+        {
+            // ReSharper disable once ConvertIfStatementToReturnStatement
+            if (serializedBloomFilter == null)
+            {
+                //TODO: get parameters from config
+                return new PythonBloomFilter(100000, 0.1);
+
+            }
+            return new PythonBloomFilter(serializedBloomFilter);
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
@@ -68,11 +103,26 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 return AsyncEnumerable.Empty<IndexValueModel>();
             }
             using var inputFile = File.OpenRead(filename);
-            inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
+            inputFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = inputFile.ReadBinaryLongFromStream();
             inputFile.Seek(0, SeekOrigin.Begin);
             var rows = inputFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(metadataOffset);
             return rows;
+        }
+
+        private static string GetSerializedBloomFilterFromFile(string filename)
+        {
+            if (new FileInfo(filename).Length == 0)
+            {
+                return null;
+            }
+            using var inputFile = File.OpenRead(filename);
+            inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
+            var bloomOffset = inputFile.ReadBinaryLongFromStream();
+            inputFile.Seek(bloomOffset, SeekOrigin.Begin);
+            using var streamReader = new StreamReader(inputFile);
+            var serializedBloomFilter = streamReader.ReadLine();
+            return serializedBloomFilter;
         }
 
         private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
