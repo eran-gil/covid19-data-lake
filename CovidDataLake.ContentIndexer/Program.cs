@@ -29,8 +29,8 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
             serviceCollection.BindConfigurationToContainer<AmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
-            var redisConfig = new ConfigurationOptions();
-            var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConfig);
+            var redisConnectionString = configuration.GetValue<string>("Redis");
+            var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
             serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
             var awsCredentials = new EnvironmentVariablesAWSCredentials();
             serviceCollection.AddSingleton<AWSCredentials>(awsCredentials);
