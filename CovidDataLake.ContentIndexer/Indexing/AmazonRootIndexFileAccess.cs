@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CovidDataLake.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
+using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
@@ -18,15 +19,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly ILock _lockMechanism;
         private readonly string _bucketName;
         private readonly string _rootIndexName;
-        private readonly TimeSpan _lockTimeSpan = TimeSpan.FromSeconds(30); //todo: get from config
+        private readonly TimeSpan _lockTimeSpan;
 
-        public AmazonRootIndexFileAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism)
+        public AmazonRootIndexFileAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism, AmazonRootIndexFileConfiguration configuration)
         {
             _cache = cache;
             _amazonAdapter = amazonAdapter;
             _lockMechanism = lockMechanism;
-            _bucketName = ""; //todo: initialize from config
-            _rootIndexName = ""; //todo: initialize from config
+            _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockTimeSpanInSeconds);
+            _bucketName = configuration.BucketName;
+            _rootIndexName = configuration.RootIndexName;
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)

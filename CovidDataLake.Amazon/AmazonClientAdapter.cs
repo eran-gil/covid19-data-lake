@@ -2,6 +2,7 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
 
@@ -11,9 +12,9 @@ namespace CovidDataLake.Amazon
     {
         private readonly AmazonS3Client _awsClient;
 
-        public AmazonClientAdapter()
+        public AmazonClientAdapter(AmazonS3Config config, AWSCredentials credentials)
         {
-            _awsClient = new AmazonS3Client(); //TODO: inject config
+            _awsClient = new AmazonS3Client(credentials, config);
         }
         public async Task UploadObjectAsync(string bucketName, string objectKey, string sourceFilename)
         {

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Amazon;
 using CovidDataLake.Bloom;
+using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
@@ -13,14 +14,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
     public class AmazonIndexFileWriter : IIndexFileWriter
     {
         private readonly IAmazonAdapter _amazonAdapter;
-        private readonly string _bucketName; //TODO: initialize from config
-        private readonly int _numOfRowsPerMetadataSection; //TODO: move to config
+        private readonly string _bucketName;
+        private readonly int _numOfRowsPerMetadataSection;
+        private readonly AmazonIndexFileConfiguration _config;
 
-        public AmazonIndexFileWriter(IAmazonAdapter amazonAdapter)
+        public AmazonIndexFileWriter(IAmazonAdapter amazonAdapter, AmazonIndexFileConfiguration configuration)
         {
             _amazonAdapter = amazonAdapter;
-            _bucketName = "test"; //TODO: inject from config
-            _numOfRowsPerMetadataSection = 5;
+            _bucketName = configuration.BucketName;
+            _numOfRowsPerMetadataSection = configuration.NumOfMetadataRows;
+            _config = configuration;
         }
 
         public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
@@ -57,7 +60,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
         }
 
-        private static async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, string downloadedFilename,
+        private async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, string downloadedFilename,
             TextWriter outputStreamWriter)
         {
             var serializedBloomFilter = GetSerializedBloomFilterFromFile(downloadedFilename);
@@ -71,13 +74,12 @@ namespace CovidDataLake.ContentIndexer.Indexing
             await outputStreamWriter.WriteLineAsync(outputBloomFilter);
         }
 
-        private static PythonBloomFilter GetBloomFilter(string serializedBloomFilter)
+        private PythonBloomFilter GetBloomFilter(string serializedBloomFilter)
         {
             // ReSharper disable once ConvertIfStatementToReturnStatement
             if (serializedBloomFilter == null)
             {
-                //TODO: get parameters from config
-                return new PythonBloomFilter(100000, 0.1);
+                return new PythonBloomFilter(_config.BloomFilterCapacity, _config.BloomFilterErrorRate);
 
             }
             return new PythonBloomFilter(serializedBloomFilter);

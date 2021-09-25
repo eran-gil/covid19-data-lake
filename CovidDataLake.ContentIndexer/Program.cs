@@ -1,8 +1,11 @@
 ﻿using System.Threading.Tasks;
+using Amazon.Runtime;
+using Amazon.S3;
 using CovidDataLake.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Hashing;
 using CovidDataLake.Common.Locking;
+using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Orchestration;
@@ -22,9 +25,15 @@ namespace CovidDataLake.ContentIndexer
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging();
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
+            serviceCollection.BindConfigurationToContainer<RedisIndexCacheConfiguration>(configuration, "RedisIndexCache");
+            serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
+            serviceCollection.BindConfigurationToContainer<AmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
+            serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
             var redisConfig = new ConfigurationOptions();
             var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConfig);
             serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
+            var awsCredentials = new EnvironmentVariablesAWSCredentials();
+            serviceCollection.AddSingleton<AWSCredentials>(awsCredentials);
             serviceCollection.AddSingleton<IConsumerFactory, KafkaConsumerFactory>();
             serviceCollection.AddSingleton<IOrchestrator, KafkaOrchestrator>();
             serviceCollection.AddSingleton<IStringHash, Md5StringHash>();

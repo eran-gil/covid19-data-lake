@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Common.Locking;
+using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 using StackExchange.Redis;
 
@@ -12,14 +13,15 @@ namespace CovidDataLake.ContentIndexer.Indexing
     {
         private readonly IConnectionMultiplexer _connection;
         private readonly ILock _lockMechanism;
-        private readonly TimeSpan _lockTimeSpan = TimeSpan.FromSeconds(10); //todo: get from config
+        private readonly TimeSpan _lockTimeSpan;
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
 
-        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism)
+        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism, RedisIndexCacheConfiguration configuration)
         {
             _connection = connection;
             _lockMechanism = lockMechanism;
+            _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockDurationInSeconds);
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
