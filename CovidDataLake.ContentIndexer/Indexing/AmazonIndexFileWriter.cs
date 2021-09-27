@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Amazon;
 using CovidDataLake.Bloom;
+using CovidDataLake.Common;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -26,12 +27,20 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _config = configuration;
         }
 
-        public async Task UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename)
         {
             //todo: handle split if necessary
-            //todo: handle file does not exist yet
-            var downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
-            
+            var downloadedFilename =
+                $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{Guid.NewGuid()}.txt";
+            if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)
+            {
+                downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
+            }
+            else
+            {
+                indexFilename = downloadedFilename;
+            }
+
             var originalIndexValues = GetIndexValuesFromFile(downloadedFilename);
             var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values, originFilename);
 
@@ -39,25 +48,29 @@ namespace CovidDataLake.ContentIndexer.Indexing
             using var outputFile = File.OpenWrite(outputFilename);
             using var outputStreamWriter = new StreamWriter(outputFile);
             var rowsMetadata = await WriteIndexValuesToFile(indexValues, outputStreamWriter);
-
             var newMetadataOffset = outputFile.Position;
-            await AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
+            var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
 
             var bloomOffset = outputFile.Position;
             await AddUpdatedBloomFilterToIndex(values, downloadedFilename, outputStreamWriter);
             outputFile.WriteBinaryLongToStream(newMetadataOffset);
             outputFile.WriteBinaryLongToStream(bloomOffset);
             await _amazonAdapter.UploadObjectAsync(_bucketName, indexFilename, outputFilename);
+            return new List<RootIndexRow> {rootIndexRow};
         }
 
-        private async Task AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata, StreamWriter outputStreamWriter)
+        private async Task<RootIndexRow> AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata, StreamWriter outputStreamWriter)
         {
-            var metadataSections = CreateMetadataFromRows(rowsMetadata);
-
+            var metadataSections = CreateMetadataFromRows(rowsMetadata).ToList();
+            var minValue = metadataSections.First().Min;
+            var maxValue = metadataSections.Last().Max;
+            var rootIndexRow = new RootIndexRow(null, minValue, maxValue, null);
             foreach (var metadataSection in metadataSections)
             {
                 await outputStreamWriter.WriteObjectToLineAsync(metadataSection);
             }
+
+            return rootIndexRow;
         }
 
         private async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, string downloadedFilename,

@@ -6,7 +6,7 @@ namespace CovidDataLake.ContentIndexer.Extraction
     {
         public bool IsFileTypeSupported(string fileType)
         {
-            return fileType.ToLowerInvariant() == "csv";
+            return fileType.ToLowerInvariant() == ".csv";
         }
 
         public IFileTableWrapper CreateTableWrapperForFile(string filename)

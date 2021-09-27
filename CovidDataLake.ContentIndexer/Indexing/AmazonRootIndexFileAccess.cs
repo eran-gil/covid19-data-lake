@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
+using Amazon.S3;
 using CovidDataLake.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
@@ -28,19 +30,19 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _lockMechanism = lockMechanism;
             _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockTimeSpanInSeconds);
             _bucketName = configuration.BucketName;
-            _rootIndexName = configuration.RootIndexName;
+            _rootIndexName = $"{CommonKeys.INDEX_FOLDER_NAME}/{configuration.RootIndexName}";
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
-            await _lockMechanism.TakeLockAsync(CommonKeys.RootIndexFileLockKey, _lockTimeSpan);
+            await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
             var indexRows = GetIndexRowsFromFile(downloadedFileName);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = downloadedFileName + "_new";
             await WriteIndexRowsToFile(outputFileName, outputRows);
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, outputFileName);
-            await _lockMechanism.ReleaseLockAsync(CommonKeys.RootIndexFileLockKey);
+            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
             await _cache.UpdateColumnRanges(columnMappings);
         }
 
@@ -49,14 +51,27 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
 
-            await _lockMechanism.TakeLockAsync(CommonKeys.RootIndexFileLockKey, _lockTimeSpan);
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-            var indexRows = GetIndexRowsFromFile(downloadedFileName);
+            await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            var indexRows = AsyncEnumerable.Empty<RootIndexRow>();
+            try
+            {
+                var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
+                indexRows = GetIndexRowsFromFile(downloadedFileName);
+
+            }
+            catch (AmazonS3Exception e)
+            {
+                if (e.StatusCode == HttpStatusCode.NotFound)
+                {
+                    await CreateRootIndexFile();
+                }
+            }
             var relevantIndexRow =
                 await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
-            if (relevantIndexRow == null) return null;
-            await _lockMechanism.ReleaseLockAsync(CommonKeys.RootIndexFileLockKey);
-
+            
+            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
+            if (relevantIndexRow == default(RootIndexRow))
+                return CommonKeys.END_OF_INDEX_FLAG;
             var update = new RootIndexColumnUpdate
                 {ColumnName = column, Rows = new List<RootIndexRow> {relevantIndexRow}};
             await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>{update});
@@ -64,9 +79,18 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return relevantIndexRow.FileName;
         }
 
+        private async Task CreateRootIndexFile()
+        {
+            var fileName = $"temp/{Guid.NewGuid()}";
+            var file = File.Create(fileName);
+            file.Close();
+            await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName);
+            File.Delete(fileName);
+        }
+
         private static bool ValidateRowWithRequest(string column, ulong val, RootIndexRow indexRow)
         {
-            return indexRow.ColumnName == column && indexRow.Min <= val && indexRow.Max >= val;
+            return indexRow.ColumnName == column && val <= indexRow.Max;
         }
 
         private static async Task WriteIndexRowsToFile(string outputFileName, IAsyncEnumerable<RootIndexRow> outputRows)
@@ -95,10 +119,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    while (currentIndexRow != null && 
-                           (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
-                            || currentIndexRow.FileName != updateRow.FileName
-                            && currentIndexRow.Min < updateRow.Min))
+                    while (ShouldWriteOriginalIndexBeforeUpdate(currentIndexRow, updateRow))
                     {
                         yield return currentIndexRow;
                         currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
@@ -109,8 +130,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    if (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName,
-                        StringComparison.InvariantCulture) < 0)
+                    if (ShouldWriteUpdateBeforeOriginalIndex(currentIndexRow, updateRow))
                     {
                         yield return updateRow;
                         continue;
@@ -138,6 +158,20 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 yield return currentIndexRow;
                 currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
             }
+        }
+
+        private static bool ShouldWriteUpdateBeforeOriginalIndex(RootIndexRow currentIndexRow, RootIndexRow updateRow)
+        {
+            return string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName,
+                StringComparison.InvariantCulture) < 0;
+        }
+
+        private static bool ShouldWriteOriginalIndexBeforeUpdate(RootIndexRow currentIndexRow, RootIndexRow updateRow)
+        {
+            return currentIndexRow != null && 
+                   (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
+                    || (currentIndexRow.FileName != updateRow.FileName
+                        && currentIndexRow.Min < updateRow.Min));
         }
 
         private static async Task<RootIndexRow> GetNextIndexRow(IAsyncEnumerator<RootIndexRow> indexRowsEnumerator)
