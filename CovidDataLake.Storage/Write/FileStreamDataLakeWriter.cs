@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.Storage.Write
 {
@@ -23,9 +24,7 @@ namespace CovidDataLake.Storage.Write
 
         public Stream CreateFileStream(string filepath)
         {
-            var directoryPath = Path.GetDirectoryName(filepath);
-            Directory.CreateDirectory(directoryPath);
-            var fileStream = File.Create(filepath);
+            var fileStream = FileCreator.CreateFileAndPath(filepath);
             return fileStream;
         }
 

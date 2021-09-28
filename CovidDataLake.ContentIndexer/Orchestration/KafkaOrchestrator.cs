@@ -39,7 +39,8 @@ namespace CovidDataLake.ContentIndexer.Orchestration
         {
             var fileType = filename.GetExtensionFromPath();
             var tableWrapperFactory = _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
-            using var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(filename);
+            //todo: add handling of no available
+            var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(filename);
             await _contentIndexer.IndexTableAsync(tableWrapper);
         }
 

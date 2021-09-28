@@ -1,4 +1,5 @@
-﻿namespace CovidDataLake.Common
+﻿// ReSharper disable InconsistentNaming
+namespace CovidDataLake.Common
 {
     public class CommonKeys
     {
@@ -7,5 +8,6 @@
         public const string  INDEX_FOLDER_NAME = "__INDEX__";
         public const string  COLUMN_INDICES_FOLDER_NAME = "__COLUMNS__";
         public const string  CONTENT_FOLDER_NAME = "__CONTENT__";
+        public const string  TEMP_FOLDER_NAME = "__TEMP__";
     }
 }

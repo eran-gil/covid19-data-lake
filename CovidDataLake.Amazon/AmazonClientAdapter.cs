@@ -2,7 +2,6 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -19,27 +18,14 @@ namespace CovidDataLake.Amazon
         }
         public async Task UploadObjectAsync(string bucketName, string objectKey, string sourceFilename)
         {
-            var uploadSession = await _awsClient.InitiateMultipartUploadAsync(bucketName, objectKey);
-            if (uploadSession.HttpStatusCode != HttpStatusCode.OK)
-            {
-                throw new Exception("couldn't upload to amazon");
-            }
-            var uploadPartRequest = new UploadPartRequest
+            var putObjectRequest = new PutObjectRequest()
             {
                 BucketName = bucketName,
                 Key = objectKey,
-                UploadId = uploadSession.UploadId,
                 FilePath = sourceFilename
             };
-            var uploadPartResponse = await _awsClient.UploadPartAsync(uploadPartRequest);
-            if (uploadPartResponse.HttpStatusCode != HttpStatusCode.OK)
-            {
-                throw new Exception("couldn't upload to amazon");
-            }
-            var completeUploadRequest = new CompleteMultipartUploadRequest
-                { BucketName = bucketName, Key = objectKey, UploadId = uploadSession.UploadId };
-            var completeMultipartUploadResponse = await _awsClient.CompleteMultipartUploadAsync(completeUploadRequest);
-            if (completeMultipartUploadResponse.HttpStatusCode != HttpStatusCode.OK)
+            var response = await _awsClient.PutObjectAsync(putObjectRequest);
+            if (response.HttpStatusCode != HttpStatusCode.OK)
             {
                 throw new Exception("couldn't upload to amazon");
             }

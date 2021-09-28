@@ -35,9 +35,9 @@ namespace CovidDataLake.Kafka.Consumer
                 await handleMessage(consumeResult.Message.Value);
                 _kafkaConsumer.Commit(consumeResult);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                //TODO: log
+                Console.WriteLine(e);
             }
         }
 

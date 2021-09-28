@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
 {
-    public interface IFileTableWrapper : IDisposable
+    public interface IFileTableWrapper
     {
         string Filename { get; set; }
-        IEnumerable<KeyValuePair<string, IEnumerable<string>>> GetColumns();
+        Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>>> GetColumns();
     }
 }

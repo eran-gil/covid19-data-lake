@@ -11,6 +11,7 @@ using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
@@ -81,8 +82,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private async Task CreateRootIndexFile()
         {
-            var fileName = $"temp/{Guid.NewGuid()}";
-            var file = File.Create(fileName);
+            var fileName = $"{CommonKeys.TEMP_FOLDER_NAME}/{Guid.NewGuid()}.txt";
+            var file = FileCreator.CreateFileAndPath(fileName);
             file.Close();
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName);
             File.Delete(fileName);
@@ -95,7 +96,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static async Task WriteIndexRowsToFile(string outputFileName, IAsyncEnumerable<RootIndexRow> outputRows)
         {
-            using var outputFile = File.OpenWrite(outputFileName);
+            using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             using var outputStreamWriter = new StreamWriter(outputFile);
             await foreach (var outputRow in outputRows)
             {
