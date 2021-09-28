@@ -2,6 +2,11 @@
 {
     public class RootIndexRow
     {
+
+        public RootIndexRow()
+        {
+        }
+
         public RootIndexRow(string columnName, ulong min, ulong max, string fileName)
         {
             ColumnName = columnName;

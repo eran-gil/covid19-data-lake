@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CovidDataLake.Amazon;
 using CovidDataLake.Bloom;
 using CovidDataLake.Common;
+using CovidDataLake.Common.Files;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -32,6 +33,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             string indexFilename, string originFilename)
         {
             //todo: handle split if necessary
+            //todo: handle deleting file at the end
             var downloadedFilename =
                 $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{Guid.NewGuid()}.txt";
             if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)
@@ -44,10 +46,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
 
             IAsyncEnumerable<IndexValueModel> indexValues;
-            if (IsFileGoodForReading(downloadedFilename))
+            using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFilename);
+            if (fileStream.BaseStream != null)
             {
-                using var inputFile = File.OpenRead(downloadedFilename);
-                var originalIndexValues = GetIndexValuesFromFile(inputFile);
+                var originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
                 indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values, originFilename);
             }
             else
@@ -55,26 +57,29 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var originalIndexValues = AsyncEnumerable.Empty<IndexValueModel>();
                 indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values, originFilename);
             }
-            
+
 
             var outputFilename = downloadedFilename + "_new";
-            var rootIndexRow = await CreateUpdatedIndexFile(values, outputFilename, indexValues, downloadedFilename);
+            var rootIndexRow = await CreateUpdatedIndexFile(values, outputFilename, indexValues, fileStream);
             rootIndexRow.FileName = indexFilename;
             await _amazonAdapter.UploadObjectAsync(_bucketName, indexFilename, outputFilename);
             return new List<RootIndexRow> {rootIndexRow};
         }
 
-        private async Task<RootIndexRow> CreateUpdatedIndexFile(IEnumerable<ulong> values, string outputFilename, IAsyncEnumerable<IndexValueModel> indexValues,
-            string downloadedFilename)
+        private async Task<RootIndexRow> CreateUpdatedIndexFile(IEnumerable<ulong> values, string outputFilename,
+            IAsyncEnumerable<IndexValueModel> indexValues,
+            OptionalFileStream stream)
         {
             using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             using var outputStreamWriter = new StreamWriter(outputFile);
             var rowsMetadata = await WriteIndexValuesToFile(indexValues, outputStreamWriter);
+            await outputStreamWriter.FlushAsync();
             var newMetadataOffset = outputFile.Position;
             var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
-
+            await outputStreamWriter.FlushAsync();
             var bloomOffset = outputFile.Position;
-            await AddUpdatedBloomFilterToIndex(values, downloadedFilename, outputStreamWriter);
+            await AddUpdatedBloomFilterToIndex(values, stream, outputFile);
+            await outputFile.FlushAsync();
             outputFile.WriteBinaryLongsToStream(new[] {newMetadataOffset, bloomOffset});
             return rootIndexRow;
         }
@@ -94,10 +99,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rootIndexRow;
         }
 
-        private async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, string downloadedFilename,
-            TextWriter outputStreamWriter)
+        private async Task AddUpdatedBloomFilterToIndex(IEnumerable<ulong> values, OptionalFileStream stream,
+            Stream outputStream)
         {
-            var serializedBloomFilter = GetSerializedBloomFilterFromFile(downloadedFilename);
+            var serializedBloomFilter = GetSerializedBloomFilterFromFile(stream);
             var bloomFilter = GetBloomFilter(serializedBloomFilter);
             foreach (var value in values)
             {
@@ -105,10 +110,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
 
             var outputBloomFilter = bloomFilter.Serialize();
-            await outputStreamWriter.WriteLineAsync(outputBloomFilter);
+            await outputStream.WriteAsync(outputBloomFilter);
         }
 
-        private PythonBloomFilter GetBloomFilter(string serializedBloomFilter)
+        private PythonBloomFilter GetBloomFilter(byte[] serializedBloomFilter)
         {
             // ReSharper disable once ConvertIfStatementToReturnStatement
             if (serializedBloomFilter == null)
@@ -142,25 +147,21 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rows;
         }
 
-        private static string GetSerializedBloomFilterFromFile(string filename)
+        private static byte[] GetSerializedBloomFilterFromFile(OptionalFileStream stream)
         {
-            if (!IsFileGoodForReading(filename))
+            var inputFile = stream.BaseStream;
+            if (inputFile == null)
             {
                 return null;
             }
 
-            using var inputFile = File.OpenRead(filename);
             inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
             var bloomOffset = inputFile.ReadBinaryLongFromStream();
             inputFile.Seek(bloomOffset, SeekOrigin.Begin);
-            using var streamReader = new StreamReader(inputFile);
-            var serializedBloomFilter = streamReader.ReadLine();
+            var bloomOffsetLength = (inputFile.Length - 2 * sizeof(long)) - bloomOffset;
+            var serializedBloomFilter = new byte[bloomOffsetLength];
+            inputFile.ReadAsync(serializedBloomFilter);
             return serializedBloomFilter;
-        }
-
-        private static bool IsFileGoodForReading(string filename)
-        {
-            return File.Exists(filename) && new FileInfo(filename).Length > 0;
         }
 
         private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(

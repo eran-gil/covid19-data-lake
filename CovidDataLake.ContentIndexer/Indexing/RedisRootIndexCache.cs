@@ -41,7 +41,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task<string> GetFileNameForColumnAndValue(string column, ulong val)
         {
             var db = _connection.GetDatabase();
-            //todo: need to test what happens when there's no index yet for column or for value...
             var redisKey = GetRedisKeyForColumn(column);
             var redisLockKey = GetRedisLockKeyForColumn(column);
             await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);

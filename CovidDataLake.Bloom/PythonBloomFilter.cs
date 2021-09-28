@@ -24,10 +24,10 @@ namespace CovidDataLake.Bloom
             _filter = _pyBloomFilter.BloomFilter(expected_insertions: capacity, err_rate: errorRate);
         }
 
-        public PythonBloomFilter(string serializedFilter)
+        public PythonBloomFilter(byte[] serializedFilter) : this()
         {
-            
-            _filter = _pyBloomFilter.BloomFilter.loads(serializedFilter);
+            var pythonFilter = ConvertByteArrayToPython(serializedFilter);
+            _filter = _pyBloomFilter.BloomFilter.loads(pythonFilter);
         }
         private PythonBloomFilter()
         {
@@ -38,14 +38,20 @@ namespace CovidDataLake.Bloom
         public void AddToFilter(ulong value)
         {
             var byteArray = BitConverter.GetBytes(value);
-            PyObject bytes = _builtins.GetAttr("bytes");
-            var bytesObject = bytes.Invoke(byteArray.ToPython());
+            var bytesObject = ConvertByteArrayToPython(byteArray);
             _filter.put(bytesObject);
         }
 
-        public string Serialize()
+        private PyObject ConvertByteArrayToPython(byte[] byteArray)
         {
-            var serialized = _filter.dumps().ToString();
+            PyObject bytes = _builtins.GetAttr("bytes");
+            var bytesObject = bytes.Invoke(byteArray.ToPython());
+            return bytesObject;
+        }
+
+        public byte[] Serialize()
+        {
+            var serialized = (byte[]) _builtins.list(_filter.dumps());
             return serialized;
         }
 

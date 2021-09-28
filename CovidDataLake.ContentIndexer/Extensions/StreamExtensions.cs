@@ -11,7 +11,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
     {
         public static async IAsyncEnumerable<T> GetDeserializedRowsFromFileAsync<T>(this FileStream file, long offsetLimit)
         {
-            using var streamReader = new StreamReader(file);
+            using var streamReader = new StreamReader(file, Encoding.Default, true, 1024, true);
             while (file.Position < offsetLimit)
             {
                 var currentLine = await streamReader.ReadLineAsync();

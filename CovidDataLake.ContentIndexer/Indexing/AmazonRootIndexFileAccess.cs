@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Amazon.S3;
 using CovidDataLake.Amazon;
 using CovidDataLake.Common;
+using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
@@ -38,7 +39,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-            var indexRows = GetIndexRowsFromFile(downloadedFileName);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFileName);
+            var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = downloadedFileName + "_new";
             await WriteIndexRowsToFile(outputFileName, outputRows);
@@ -53,12 +55,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (cached != null) return cached;
 
             await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
-            var indexRows = AsyncEnumerable.Empty<RootIndexRow>();
+            var downloadedFileName = "__";
             try
             {
-                var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-                indexRows = GetIndexRowsFromFile(downloadedFileName);
-
+                downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
+                
             }
             catch (AmazonS3Exception e)
             {
@@ -67,6 +68,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     await CreateRootIndexFile();
                 }
             }
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFileName);
+            var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
             
@@ -190,15 +193,14 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return currentIndexRow;
         }
 
-        private static IAsyncEnumerable<RootIndexRow> GetIndexRowsFromFile(string filename)
+        private static IAsyncEnumerable<RootIndexRow> GetIndexRowsFromFile(OptionalFileStream stream)
         {
-            if (new FileInfo(filename).Length == 0)
+            var indexFile = stream.BaseStream;
+            var rows = AsyncEnumerable.Empty<RootIndexRow>();
+            if (indexFile != null)
             {
-                return AsyncEnumerable.Empty<RootIndexRow>();
+                rows = indexFile.GetDeserializedRowsFromFileAsync<RootIndexRow>(indexFile.Length);
             }
-
-            using var indexFile = File.OpenRead(filename);
-            var rows = indexFile.GetDeserializedRowsFromFileAsync<RootIndexRow>(indexFile.Length);
             return rows;
         }
     }

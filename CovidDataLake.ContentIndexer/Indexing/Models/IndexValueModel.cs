@@ -4,6 +4,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
     public class IndexValueModel
     {
+
+        public IndexValueModel()
+        {
+            
+        }
         public IndexValueModel(ulong value, List<string> files)
         {
             Value = value;
