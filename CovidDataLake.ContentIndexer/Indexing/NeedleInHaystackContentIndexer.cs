@@ -24,7 +24,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task IndexTableAsync(IFileTableWrapper tableWrapper)
         {
             var columns = await tableWrapper.GetColumns();
-            var hashedColumns = HashColumnValues(columns).ToList(); //todo: no list
+            var hashedColumns = HashColumnValues(columns);
 
             var valuesToFilesMapping = hashedColumns.ToDictionary(column => column.Key, GetFileMappingForColumn);
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();

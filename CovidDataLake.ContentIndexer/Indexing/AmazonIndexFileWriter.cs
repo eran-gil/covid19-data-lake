@@ -34,6 +34,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             //todo: handle split if necessary
             //todo: handle deleting file at the end
+            //todo: test update integrity
             var downloadedFilename =
                 $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{Guid.NewGuid()}.txt";
             if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)

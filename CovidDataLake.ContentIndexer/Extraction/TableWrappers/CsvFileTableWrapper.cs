@@ -26,10 +26,17 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
         public string Filename { get; set; }
         public async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>>> GetColumns()
         {
-            //todo: handle null header record
             using var reader = CreateCsvReader(Filename);
-            await reader.ReadAsync();
-            reader.ReadHeader();
+            var canRead = await reader.ReadAsync();
+            if (!canRead) return GetDefaultValue();
+            try
+            {
+                reader.ReadHeader();
+            }
+            catch (Exception)
+            {
+                return GetDefaultValue();
+            }
             return reader.HeaderRecord.ToDictionary(column => column, GetColumnValues);
         }
 
@@ -51,6 +58,11 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
             var streamReader = new StreamReader(filename);
             var csvReader = new CsvReader(streamReader, _csvConfig);
             return csvReader;
+        }
+
+        private IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>> GetDefaultValue()
+        {
+            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<string>>>();
         }
 
     }
