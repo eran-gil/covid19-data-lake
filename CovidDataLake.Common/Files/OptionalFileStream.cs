@@ -5,14 +5,18 @@ namespace CovidDataLake.Common.Files
 {
     public class OptionalFileStream : IDisposable
     {
+        private readonly string _filename;
+        private readonly bool _shouldDelete;
         public FileStream BaseStream { get; }
 
-        private OptionalFileStream(FileStream baseStream)
+        private OptionalFileStream(FileStream baseStream, string filename, bool shouldDelete)
         {
+            _filename = filename;
+            _shouldDelete = shouldDelete;
             BaseStream = baseStream;
         }
 
-        public static OptionalFileStream CreateOptionalFileReadStream(string filename)
+        public static OptionalFileStream CreateOptionalFileReadStream(string filename, bool shouldDelete = true)
         {
             var stream = default(FileStream);
             if (IsFileGoodForReading(filename))
@@ -20,7 +24,7 @@ namespace CovidDataLake.Common.Files
                 stream = File.OpenRead(filename);
             }
 
-            return new OptionalFileStream(stream);
+            return new OptionalFileStream(stream, filename, shouldDelete);
         }
 
         private static bool IsFileGoodForReading(string filename)
@@ -30,7 +34,9 @@ namespace CovidDataLake.Common.Files
 
         public void Dispose()
         {
-            BaseStream?.Dispose();
+            if (BaseStream == default(FileStream)) return;
+            BaseStream.Dispose();
+            if (_shouldDelete) File.Delete(_filename);
         }
     }
 }

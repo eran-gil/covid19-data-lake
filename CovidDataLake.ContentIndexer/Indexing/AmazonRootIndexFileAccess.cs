@@ -45,6 +45,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var outputFileName = downloadedFileName + "_new";
             await WriteIndexRowsToFile(outputFileName, outputRows);
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, outputFileName);
+            File.Delete(downloadedFileName);
             await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
             await _cache.UpdateColumnRanges(columnMappings);
         }
@@ -55,7 +56,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (cached != null) return cached;
 
             await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
-            var downloadedFileName = "__";
+            var downloadedFileName = "__NOT_EXISTING__";
             try
             {
                 downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
@@ -68,18 +69,18 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     await CreateRootIndexFile();
                 }
             }
+            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
+
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
             
-            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
             if (relevantIndexRow == default(RootIndexRow))
                 return CommonKeys.END_OF_INDEX_FLAG;
             var update = new RootIndexColumnUpdate
                 {ColumnName = column, Rows = new List<RootIndexRow> {relevantIndexRow}};
             await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>{update});
-
             return relevantIndexRow.FileName;
         }
 

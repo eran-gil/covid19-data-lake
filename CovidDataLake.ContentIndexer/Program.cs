@@ -27,7 +27,8 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
             serviceCollection.BindConfigurationToContainer<RedisIndexCacheConfiguration>(configuration, "RedisIndexCache");
             serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
-            serviceCollection.BindConfigurationToContainer<AmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
+            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexConfiguration>(configuration, "AmazonIndexFile");
+            serviceCollection.BindConfigurationToContainer<NeedleInHaystackIndexConfiguration>(configuration, "NeedleInHaystackIndex");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
             var redisConnectionString = configuration.GetValue<string>("Redis");
             var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
@@ -41,6 +42,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IFileTableWrapperFactory, CsvFileTableWrapperFactory>();
             serviceCollection.AddSingleton<IContentIndexer, NeedleInHaystackContentIndexer>();
             serviceCollection.AddSingleton<IStringHash, Md5StringHash>();
+            serviceCollection.AddSingleton<IIndexFileAccess, NeedleInHaystackIndexFileAccess>();
             serviceCollection.AddSingleton<IIndexFileWriter, AmazonIndexFileWriter>();
             serviceCollection.AddSingleton<IRootIndexAccess, AmazonRootIndexFileAccess>();
             serviceCollection.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
