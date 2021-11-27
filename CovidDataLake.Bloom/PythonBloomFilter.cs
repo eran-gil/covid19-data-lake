@@ -1,6 +1,4 @@
-﻿
-using System;
-using Python.Runtime;
+﻿using Python.Runtime;
 
 namespace CovidDataLake.Bloom
 {
@@ -35,9 +33,9 @@ namespace CovidDataLake.Bloom
             _builtins = Py.Import(BuiltinsLibrary);
         }
 
-        public void AddToFilter(ulong value)
+        public void AddToFilter(string value)
         {
-            var byteArray = BitConverter.GetBytes(value);
+            var byteArray = System.Text.Encoding.UTF8.GetBytes(value);
             var bytesObject = ConvertByteArrayToPython(byteArray);
             _filter.put(bytesObject);
         }

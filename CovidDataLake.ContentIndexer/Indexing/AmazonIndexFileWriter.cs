@@ -21,7 +21,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _bucketName = configuration.BucketName;
         }
 
-        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<ulong> values,
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<string> values,
             string indexFilename, string originFilename)
         {
             //todo: test after refactor

@@ -6,6 +6,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IIndexFileWriter
     {
-        Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<ulong> values, string indexFilename, string originFilename);
+        Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<string> values, string indexFilename, string originFilename);
     }
 }

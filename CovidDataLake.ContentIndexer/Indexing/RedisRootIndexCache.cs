@@ -15,6 +15,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly ILock _lockMechanism;
         private readonly TimeSpan _lockTimeSpan;
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
+        private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
+        private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
         private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
 
         public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism, RedisIndexCacheConfiguration configuration)
@@ -31,29 +33,33 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var redisKey = GetRedisKeyForColumn(columnUpdate.ColumnName);
                 var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
-                var sortedSetEntries = columnUpdate.Rows.Select(CreateSortedSetEntryFromColumnMapping).ToArray();
                 await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-                await db.SortedSetAddAsync(redisKey, sortedSetEntries);
+                columnUpdate.Rows.AsParallel().ForAll(async row => await UpdateRowCacheInRedis(db, row, redisKey));
                 await _lockMechanism.ReleaseLockAsync(redisLockKey);
             }
         }
 
-        public async Task<string> GetFileNameForColumnAndValue(string column, ulong val)
+        private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row, string redisKey)
+        {
+            var currentMaxValue = await db.HashGetAsync(RedisFilesToValuesHashMapKey, row.FileName);
+            await db.HashDeleteAsync(RedisValuesToFilesHashMapKey, currentMaxValue);
+            await db.SortedSetRemoveAsync(redisKey, currentMaxValue);
+            await db.HashSetAsync(RedisFilesToValuesHashMapKey, row.FileName, row.Max);
+            await db.HashSetAsync(RedisValuesToFilesHashMapKey, row.Max, row.FileName);
+            await db.SortedSetAddAsync(redisKey, row.Max, 0);
+        }
+
+        public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
             var db = _connection.GetDatabase();
             var redisKey = GetRedisKeyForColumn(column);
             var redisLockKey = GetRedisLockKeyForColumn(column);
             await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-            var indexFileValue = (await db.SortedSetRangeByScoreAsync(redisKey, val, take: 1)).FirstOrDefault();
+            var indexFileValue = (await db.SortedSetRangeByValueAsync(redisKey, val, take: 1)).FirstOrDefault();
             await _lockMechanism.ReleaseLockAsync(redisLockKey);
             if (indexFileValue == default) return null;
             var indexFileName = indexFileValue.ToString();
             return indexFileName;
-        }
-
-        private static SortedSetEntry CreateSortedSetEntryFromColumnMapping(RootIndexRow mapping)
-        {
-            return new(mapping.FileName, mapping.Max);
         }
 
         private static string GetRedisKeyForColumn(string column)

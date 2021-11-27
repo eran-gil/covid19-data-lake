@@ -2,13 +2,13 @@
 {
     public class FileRowMetadata
     {
-        public FileRowMetadata(long offset, ulong value)
+        public FileRowMetadata(long offset, string value)
         {
             Offset = offset;
             Value = value;
         }
 
         public long Offset { get; set; }
-        public ulong Value { get; set; }
+        public string Value { get; set; }
     }
 }

@@ -9,12 +9,12 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
         {
             
         }
-        public IndexValueModel(ulong value, List<string> files)
+        public IndexValueModel(string value, List<string> files)
         {
             Value = value;
             Files = files;
         }
-        public ulong Value { get; set; }
+        public string Value { get; set; }
         public List<string> Files { get; set; }
     }
 }

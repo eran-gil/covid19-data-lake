@@ -50,7 +50,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             await _cache.UpdateColumnRanges(columnMappings);
         }
 
-        public async Task<string> GetFileNameForColumnAndValue(string column, ulong val)
+        public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
@@ -79,7 +79,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (relevantIndexRow == default(RootIndexRow))
                 return CommonKeys.END_OF_INDEX_FLAG;
             var update = new RootIndexColumnUpdate
-                {ColumnName = column, Rows = new List<RootIndexRow> {relevantIndexRow}};
+            {
+                ColumnName = column, Rows = new SortedSet<RootIndexRow> {relevantIndexRow}
+            };
+
             await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>{update});
             return relevantIndexRow.FileName;
         }
@@ -93,9 +96,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
             File.Delete(fileName);
         }
 
-        private static bool ValidateRowWithRequest(string column, ulong val, RootIndexRow indexRow)
+        private static bool ValidateRowWithRequest(string column, string val, RootIndexRow indexRow)
         {
-            return indexRow.ColumnName == column && val <= indexRow.Max;
+            return indexRow.ColumnName == column && string.CompareOrdinal(val, indexRow.Max) < 0;
         }
 
         private static async Task WriteIndexRowsToFile(string outputFileName, IAsyncEnumerable<RootIndexRow> outputRows)
@@ -150,7 +153,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    if (currentIndexRow.Min > updateRow.Min)
+                    if (string.CompareOrdinal(currentIndexRow.Min , updateRow.Min) < 0)
                     {
                         yield return updateRow;
                     }
@@ -176,7 +179,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return currentIndexRow != null && 
                    (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
                     || (currentIndexRow.FileName != updateRow.FileName
-                        && currentIndexRow.Min < updateRow.Min));
+                        && string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0));
         }
 
         private static async Task<RootIndexRow> GetNextIndexRow(IAsyncEnumerator<RootIndexRow> indexRowsEnumerator)

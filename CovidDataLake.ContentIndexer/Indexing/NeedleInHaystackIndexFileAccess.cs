@@ -27,7 +27,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _maxRowsPerFile = configuration.MaxRowsPerFile;
         }
 
-        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<ulong> values,
+        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<string> values,
             string valuesFileName
         )
         {
@@ -64,7 +64,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
             IAsyncEnumerable<IndexValueModel> originalIndexValues,
-            IList<ulong> newValues, string valuesFileName)
+            IList<string> newValues, string valuesFileName)
         {
             await foreach (var indexValue in originalIndexValues)
             {
@@ -81,7 +81,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     newValues.RemoveAt(0);
                 }
 
-                if (currentInputValue < indexValue.Value)
+                if (string.Compare(currentInputValue, indexValue.Value, StringComparison.Ordinal) < 0)
                 {
                     var newIndexValue = new IndexValueModel(currentInputValue, new List<string> {valuesFileName});
                     newValues.RemoveAt(0);

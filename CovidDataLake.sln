@@ -17,7 +17,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Common", "Cov
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Amazon", "CovidDataLake.Amazon\CovidDataLake.Amazon.csproj", "{AE841607-09AC-4A40-B799-3AE4717CC016}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Bloom", "CovidDataLake.Bloom\CovidDataLake.Bloom.csproj", "{FC36F83A-61A7-43A3-9845-06AE975535A9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Bloom", "CovidDataLake.Bloom\CovidDataLake.Bloom.csproj", "{FC36F83A-61A7-43A3-9845-06AE975535A9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FBDF2201-B0C4-495E-982C-7560C886165D}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

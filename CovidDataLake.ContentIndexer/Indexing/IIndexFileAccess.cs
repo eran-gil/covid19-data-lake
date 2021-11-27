@@ -7,7 +7,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
     public interface IIndexFileAccess
     {
         Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName,
-            IList<ulong> values,
+            IList<string> values,
             string valuesFileName
         );
     }
