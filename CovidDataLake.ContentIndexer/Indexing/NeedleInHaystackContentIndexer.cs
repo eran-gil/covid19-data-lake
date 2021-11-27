@@ -50,7 +50,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var columnUpdate = new RootIndexColumnUpdate
             {
                 ColumnName = columnName,
-                Rows = new SortedSet<RootIndexRow>(updateIndexTasks.SelectMany(t => t.Result))
+                Rows = updateIndexTasks.SelectMany(t => t.Result).ToList()
             };
             return columnUpdate;
         }

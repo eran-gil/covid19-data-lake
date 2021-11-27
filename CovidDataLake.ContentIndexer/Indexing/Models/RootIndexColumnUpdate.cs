@@ -6,7 +6,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
     public class RootIndexColumnUpdate : IComparable<RootIndexColumnUpdate>
     {
         public string ColumnName { get; set; }
-        public SortedSet<RootIndexRow> Rows { get; set; }
+        public IEnumerable<RootIndexRow> Rows { get; set; }
 
         public int CompareTo(RootIndexColumnUpdate other)
         {

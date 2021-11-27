@@ -31,40 +31,54 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var db = _connection.GetDatabase();
             foreach (var columnUpdate in columnMappings)
             {
-                var redisKey = GetRedisKeyForColumn(columnUpdate.ColumnName);
                 var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
                 await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-                columnUpdate.Rows.AsParallel().ForAll(async row => await UpdateRowCacheInRedis(db, row, redisKey));
+                columnUpdate.Rows.AsParallel().ForAll(async row => await UpdateRowCacheInRedis(db, row));
                 await _lockMechanism.ReleaseLockAsync(redisLockKey);
             }
         }
 
-        private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row, string redisKey)
+        private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row)
         {
-            var currentMaxValue = await db.HashGetAsync(RedisFilesToValuesHashMapKey, row.FileName);
-            await db.HashDeleteAsync(RedisValuesToFilesHashMapKey, currentMaxValue);
-            await db.SortedSetRemoveAsync(redisKey, currentMaxValue);
-            await db.HashSetAsync(RedisFilesToValuesHashMapKey, row.FileName, row.Max);
-            await db.HashSetAsync(RedisValuesToFilesHashMapKey, row.Max, row.FileName);
-            await db.SortedSetAddAsync(redisKey, row.Max, 0);
+            var redisSetKey = GetRedisKeyForColumn(row.ColumnName);
+            var redisFilesToValuesKey = GetRedisFilesToValuesKeyForColumn(row.ColumnName);
+            var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(row.ColumnName);
+            var currentMaxValue = await db.HashGetAsync(redisFilesToValuesKey, row.FileName);
+            await db.HashDeleteAsync(redisValuesToFilesKey, currentMaxValue);
+            await db.SortedSetRemoveAsync(redisSetKey, currentMaxValue);
+            await db.HashSetAsync(redisValuesToFilesKey, row.FileName, row.Max);
+            await db.HashSetAsync(redisValuesToFilesKey, row.Max, row.FileName);
+            await db.SortedSetAddAsync(redisSetKey, row.Max, 0);
         }
 
         public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
             var db = _connection.GetDatabase();
-            var redisKey = GetRedisKeyForColumn(column);
+            var redisSetKey = GetRedisKeyForColumn(column);
+            var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
             var redisLockKey = GetRedisLockKeyForColumn(column);
             await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-            var indexFileValue = (await db.SortedSetRangeByValueAsync(redisKey, val, take: 1)).FirstOrDefault();
+            var indexFileMaxValue = (await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1)).FirstOrDefault();
+            var indexFile = await db.HashGetAsync(redisValuesToFilesKey, indexFileMaxValue);
             await _lockMechanism.ReleaseLockAsync(redisLockKey);
-            if (indexFileValue == default) return null;
-            var indexFileName = indexFileValue.ToString();
+            if (indexFile == default) return null;
+            var indexFileName = indexFile.ToString();
             return indexFileName;
         }
 
         private static string GetRedisKeyForColumn(string column)
         {
             return $"{RedisKeyPrefix}{column}";
+        }
+
+        private static string GetRedisValuesToFilesKeyForColumn(string column)
+        {
+            return $"{RedisValuesToFilesHashMapKey}{column}";
+        }
+
+        private static string GetRedisFilesToValuesKeyForColumn(string column)
+        {
+            return $"{RedisFilesToValuesHashMapKey}{column}";
         }
 
         private static string GetRedisLockKeyForColumn(string column)
