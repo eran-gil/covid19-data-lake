@@ -44,8 +44,12 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var redisFilesToValuesKey = GetRedisFilesToValuesKeyForColumn(row.ColumnName);
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(row.ColumnName);
             var currentMaxValue = await db.HashGetAsync(redisFilesToValuesKey, row.FileName);
-            await db.HashDeleteAsync(redisValuesToFilesKey, currentMaxValue);
-            await db.SortedSetRemoveAsync(redisSetKey, currentMaxValue);
+            if (currentMaxValue != default)
+            {
+                await db.HashDeleteAsync(redisValuesToFilesKey, currentMaxValue);
+                await db.SortedSetRemoveAsync(redisSetKey, currentMaxValue);
+            }
+
             await db.HashSetAsync(redisValuesToFilesKey, row.FileName, row.Max);
             await db.HashSetAsync(redisValuesToFilesKey, row.Max, row.FileName);
             await db.SortedSetAddAsync(redisSetKey, row.Max, 0);
