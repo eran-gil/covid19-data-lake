@@ -66,7 +66,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             return $"{RedisKeyPrefix}{column}";
         }
-        
+
         private static string GetRedisLockKeyForColumn(string column)
         {
             return $"{RedisLockKeyPrefix}{column}";

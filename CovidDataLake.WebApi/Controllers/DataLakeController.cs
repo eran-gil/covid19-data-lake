@@ -36,7 +36,7 @@ namespace CovidDataLake.WebApi.Controllers
 
         [HttpPost]
         [Route("PostNewFile")]
-        public async Task<ActionResult> PostNewFile([BindRequired] [FromQuery(Name = "filename")] string filename)
+        public async Task<ActionResult> PostNewFile([BindRequired][FromQuery(Name = "filename")] string filename)
         {
             var fileType = filename.GetExtensionFromPath();
             if (!_fileTypeValidator.IsFileTypeValid(fileType))

@@ -7,7 +7,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
 
         public IndexValueModel()
         {
-            
+
         }
         public IndexValueModel(string value, List<string> files)
         {

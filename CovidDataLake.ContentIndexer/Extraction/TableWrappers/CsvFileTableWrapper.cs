@@ -21,7 +21,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
                 NewLine = Environment.NewLine,
                 HasHeaderRecord = true
             };
-            
+
         }
         public string Filename { get; set; }
         public async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>>> GetColumns()

@@ -1,13 +1,13 @@
-using CovidDataLake.Common;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using CovidDataLake.Common;
 using CovidDataLake.Kafka.Producer;
 using CovidDataLake.Kafka.Producer.Configuration;
 using CovidDataLake.Storage.Write;
-using Microsoft.AspNetCore.Mvc;
 using CovidDataLake.WebApi.Validation;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CovidDataLake.WebApi
 {

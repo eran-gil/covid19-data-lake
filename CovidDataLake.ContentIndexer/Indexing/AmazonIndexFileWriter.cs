@@ -42,10 +42,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var rootIndexRow = rootIndexRows[i];
                 var localFileName = rootIndexRow.FileName;
-                rootIndexRow.FileName = i==0 ? indexFilename : CreateNewColumnIndexFileName();
+                rootIndexRow.FileName = i == 0 ? indexFilename : CreateNewColumnIndexFileName();
                 await _amazonAdapter.UploadObjectAsync(_bucketName, rootIndexRow.FileName, localFileName);
             }
-            
+
             return rootIndexRows;
         }
 

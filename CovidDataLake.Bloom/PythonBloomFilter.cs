@@ -49,7 +49,7 @@ namespace CovidDataLake.Bloom
 
         public byte[] Serialize()
         {
-            var serialized = (byte[]) _builtins.list(_filter.dumps());
+            var serialized = (byte[])_builtins.list(_filter.dumps());
             return serialized;
         }
 

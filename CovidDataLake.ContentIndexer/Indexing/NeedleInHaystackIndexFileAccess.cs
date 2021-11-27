@@ -33,7 +33,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             var originalIndexValues = AsyncEnumerable.Empty<IndexValueModel>();
 
-                using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(sourceIndexFileName);
+            using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(sourceIndexFileName);
             if (fileStream.BaseStream != null)
             {
                 originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
@@ -49,7 +49,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var rootIndexRow = await MergeIndexValuesToFile(batch, outputFilename);
                 rootIndexRows.Add(rootIndexRow);
             }
-            
+
             return rootIndexRows;
         }
 
@@ -83,7 +83,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
                 if (string.Compare(currentInputValue, indexValue.Value, StringComparison.Ordinal) < 0)
                 {
-                    var newIndexValue = new IndexValueModel(currentInputValue, new List<string> {valuesFileName});
+                    var newIndexValue = new IndexValueModel(currentInputValue, new List<string> { valuesFileName });
                     newValues.RemoveAt(0);
                     yield return newIndexValue;
                 }
@@ -94,7 +94,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (!newValues.Any()) yield break;
             foreach (var currentValue in newValues)
             {
-                var newIndexValue = new IndexValueModel(currentValue, new List<string> {valuesFileName});
+                var newIndexValue = new IndexValueModel(currentValue, new List<string> { valuesFileName });
                 yield return newIndexValue;
             }
         }
@@ -112,7 +112,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var bloomOffset = outputFile.Position;
             await AddBloomFilterToIndex(rowsMetadata, outputFile);
             await outputFile.FlushAsync();
-            outputFile.WriteBinaryLongsToStream(new[] {newMetadataOffset, bloomOffset});
+            outputFile.WriteBinaryLongsToStream(new[] { newMetadataOffset, bloomOffset });
             return rootIndexRow;
         }
 

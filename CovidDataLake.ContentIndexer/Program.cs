@@ -45,7 +45,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
-            
+
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
             await orchestrator.StartOrchestration();

@@ -34,7 +34,7 @@ namespace CovidDataLake.Storage.Write
             return Task.Factory.StartNew(() => fi.Delete());
         }
 
-        
-        
+
+
     }
 }

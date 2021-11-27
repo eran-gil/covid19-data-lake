@@ -10,5 +10,5 @@ namespace CovidDataLake.Kafka.Consumer.Configuration
         public string Topic { get; set; }
     }
 
-    
+
 }

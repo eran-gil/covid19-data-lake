@@ -60,7 +60,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             try
             {
                 downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-                
+
             }
             catch (AmazonS3Exception e)
             {
@@ -75,15 +75,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
-            
+
             if (relevantIndexRow == default(RootIndexRow))
                 return CommonKeys.END_OF_INDEX_FLAG;
             var update = new RootIndexColumnUpdate
             {
-                ColumnName = column, Rows = new SortedSet<RootIndexRow> {relevantIndexRow}
+                ColumnName = column,
+                Rows = new SortedSet<RootIndexRow> { relevantIndexRow }
             };
 
-            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>{update});
+            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate> { update });
             return relevantIndexRow.FileName;
         }
 
@@ -153,7 +154,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         continue;
                     }
 
-                    if (string.CompareOrdinal(currentIndexRow.Min , updateRow.Min) < 0)
+                    if (string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0)
                     {
                         yield return updateRow;
                     }
@@ -176,7 +177,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static bool ShouldWriteOriginalIndexBeforeUpdate(RootIndexRow currentIndexRow, RootIndexRow updateRow)
         {
-            return currentIndexRow != null && 
+            return currentIndexRow != null &&
                    (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
                     || (currentIndexRow.FileName != updateRow.FileName
                         && string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0));
