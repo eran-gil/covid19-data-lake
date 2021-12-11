@@ -40,6 +40,13 @@ namespace CovidDataLake.Bloom
             _filter.put(bytesObject);
         }
 
+        public bool IsInFilter(string value)
+        {
+            var byteArray = System.Text.Encoding.UTF8.GetBytes(value);
+            var bytesObject = ConvertByteArrayToPython(byteArray);
+            return (bool) _filter.might_contain(bytesObject);
+        }
+
         private PyObject ConvertByteArrayToPython(byte[] byteArray)
         {
             PyObject bytes = _builtins.GetAttr("bytes");
