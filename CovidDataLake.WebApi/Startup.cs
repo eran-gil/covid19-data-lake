@@ -1,6 +1,13 @@
-﻿using CovidDataLake.Common;
+﻿using Amazon.Runtime;
+using Amazon.S3;
+using CovidDataLake.Amazon;
+using CovidDataLake.Common;
+using CovidDataLake.Common.Locking;
+using CovidDataLake.ContentIndexer.Configuration;
+using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Kafka.Producer;
 using CovidDataLake.Kafka.Producer.Configuration;
+using CovidDataLake.Queries.Executors;
 using CovidDataLake.Storage.Write;
 using CovidDataLake.WebApi.Validation;
 using Microsoft.AspNetCore.Builder;
@@ -8,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace CovidDataLake.WebApi
 {
@@ -28,6 +36,22 @@ namespace CovidDataLake.WebApi
             services.BindConfigurationToContainer<KafkaProducerConfiguration>(Configuration, "Kafka");
             services.BindConfigurationToContainer<DataLakeWriterConfiguration>(Configuration, "Storage");
             services.BindConfigurationToContainer<FileTypeValidationConfiguration>(Configuration, "Validation");
+            services.BindConfigurationToContainer<AmazonS3Config>(Configuration, "AmazonGeneralConfig");
+            services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
+            services.BindConfigurationToContainer<RedisIndexCacheConfiguration>(Configuration, "RedisIndexCache");
+            services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
+            services.BindConfigurationToContainer<BasicAmazonIndexConfiguration>(Configuration, "AmazonIndexFile");
+            var redisConnectionString = Configuration.GetValue<string>("Redis");
+            var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
+            services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+            var awsCredentials = new EnvironmentVariablesAWSCredentials();
+            services.AddSingleton<AWSCredentials>(awsCredentials);
+            services.AddSingleton<IRootIndexAccess, AmazonRootIndexFileAccess>();
+            services.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
+            services.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
+            services.AddSingleton<ILock, RedisLock>();
+            services.AddSingleton<IQueryExecutor, NeedleInHaystackQueryExecutor>();
+
             services.AddSingleton<IDataLakeWriter, FileStreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();

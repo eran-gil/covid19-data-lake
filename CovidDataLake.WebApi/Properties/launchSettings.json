@@ -13,6 +13,11 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
+        "AWS_SECRET_ACCESS_KEY": "pZbXhx99m421WXN8qqHMi9X9CuqmkhjtBB810bJo",
+        "AmazonGeneralConfig__ServiceUrl": "https://s3.us-east-2.amazonaws.com",
+        "PYTHONNET_PYDLL": "C:\\Users\\erang\\AppData\\Local\\Programs\\Python\\Python39\\python39.dll",
+        "AWS_ACCESS_KEY_ID": "AKIA2HYWFMXECNJEFAE3",
+        "AmazonRootIndex__BucketName": "erangil-covid-datalake",
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },

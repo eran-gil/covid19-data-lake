@@ -9,7 +9,7 @@ using StackExchange.Redis;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
-    class RedisRootIndexCache : IRootIndexCache
+    public class RedisRootIndexCache : IRootIndexCache
     {
         private readonly IConnectionMultiplexer _connection;
         private readonly ILock _lockMechanism;

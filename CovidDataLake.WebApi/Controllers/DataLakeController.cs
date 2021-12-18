@@ -26,14 +26,6 @@ namespace CovidDataLake.WebApi.Controllers
             _messageProducer = producerFactory.CreateProducer(Dns.GetHostName());
         }
 
-
-        [HttpGet]
-        [Route("Get")]
-        public ActionResult GetBla()
-        {
-            return Ok();
-        }
-
         [HttpPost]
         [Route("PostNewFile")]
         public async Task<ActionResult> PostNewFile([BindRequired][FromQuery(Name = "filename")] string filename)

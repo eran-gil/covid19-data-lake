@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CovidDataLake.Amazon;
 using CovidDataLake.Bloom;
 using CovidDataLake.Common;
+using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -13,20 +14,26 @@ using CovidDataLake.Queries.Models;
 
 namespace CovidDataLake.Queries.Executors
 {
-    class NeedleInHaystackQueryExecutor : IQueryExecutor<NeedleInHaystackQuery>
+    public class NeedleInHaystackQueryExecutor : BaseQueryExecutor<NeedleInHaystackQuery>
     {
         private readonly IRootIndexAccess _rootIndexAccess;
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly string _bucketName;
 
-        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, string bucketName)
+        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, BasicAmazonIndexConfiguration indexConfiguration)
         {
             _rootIndexAccess = rootIndexAccess;
             _amazonAdapter = amazonAdapter;
-            _bucketName = bucketName;
+            _bucketName = indexConfiguration.BucketName;
 
         }
-        public IEnumerable<QueryResult> Execute(NeedleInHaystackQuery query)
+
+        public override bool CanHandle(string queryType)
+        {
+            return queryType == "NeedleInHaystack";
+        }
+
+        public override IEnumerable<QueryResult> Execute(NeedleInHaystackQuery query)
         {
             var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults().SelectMany(r => r);
             var filteredResults = Enumerable.Empty<IGrouping<string, QueryResult>>();
