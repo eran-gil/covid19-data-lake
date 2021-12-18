@@ -24,41 +24,28 @@ namespace CovidDataLake.Queries.Executors
             _rootIndexAccess = rootIndexAccess;
             _amazonAdapter = amazonAdapter;
             _bucketName = bucketName;
+
         }
         public IEnumerable<QueryResult> Execute(NeedleInHaystackQuery query)
         {
-            var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults();
-            var aggregatedQueryResults = Enumerable.Empty<QueryResult>();
-            // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-            switch (query.Relation)
+            var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults().SelectMany(r => r);
+            var filteredResults = Enumerable.Empty<IGrouping<string, QueryResult>>();
+            var groupedResults = queryResults.GroupBy(result => result.FileName);
+            filteredResults = query.Relation switch
             {
-                case ConditionRelation.And:
-                    aggregatedQueryResults = queryResults.Aggregate(aggregatedQueryResults, IntersectResults);
-                    break;
-                case ConditionRelation.Or:
-                    aggregatedQueryResults = queryResults.Aggregate(aggregatedQueryResults, UnionResults);
-                    break;
-            }
+                ConditionRelation.And => groupedResults.Where(group => group.Count() == query.Conditions.Count()),
+                ConditionRelation.Or => groupedResults,
+                _ => filteredResults
+            };
 
-            return aggregatedQueryResults;
-        }
+            var mergedResults =
+                filteredResults.Select(group => new QueryResult(group.Key, group.SelectMany(g => g.HitValues)));
 
-        private static IEnumerable<QueryResult> IntersectResults(IEnumerable<QueryResult> result1,
-            IEnumerable<QueryResult> result2)
-        {
-            return result1.Intersect(result2);
-        }
-
-        private static IEnumerable<QueryResult> UnionResults(IEnumerable<QueryResult> result1,
-            IEnumerable<QueryResult> result2)
-        {
-            return result1.Union(result2);
+            return mergedResults;
         }
 
         private async Task<IEnumerable<QueryResult>> GetFilesMatchingCondition(NeedleInHaystackColumnCondition condition)
         {
-            //todo: add locks
-            //todo: separate to methods
             var defaultResult = Enumerable.Empty<QueryResult>();
             var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(condition.ColumnName, condition.Value);
             if (indexFileName == CommonKeys.END_OF_INDEX_FLAG)
@@ -70,12 +57,42 @@ namespace CovidDataLake.Queries.Executors
             using var indexFile = File.OpenRead(downloadedFileName);
             indexFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = indexFile.ReadBinaryLongFromStream();
-            var bloomOffset = indexFile.ReadBinaryLongFromStream();
-            var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
-            if (!bloomFilter.IsInFilter(condition.Value))
+            if (!await VerifyConditionWithBloomFilter(condition, indexFile))
             {
                 return defaultResult;
             }
+            
+            var (relevantSection, endOffset) = await GetRelevantSectionInIndex(indexFile, condition, metadataOffset);
+            if (relevantSection == default(IndexMetadataSectionModel))
+            {
+                return defaultResult;
+            }
+            var indexRow = await GetIndexRowForCondition(condition, indexFile, relevantSection, endOffset);
+            return indexRow == default(IndexValueModel) ?
+                defaultResult :
+                indexRow.Files.Select(file => new QueryResult(file, new[] {condition.Value}));
+        }
+
+        private static async Task<IndexValueModel> GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,
+            IndexMetadataSectionModel relevantSection, long endOffset)
+        {
+            indexFile.Seek(relevantSection.Offset, SeekOrigin.Begin);
+            var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(endOffset);
+            var indexRow = await indexRows.FirstOrDefaultAsync(row => row.Value.Equals(condition.Value));
+            return indexRow;
+        }
+
+        private static async Task<bool> VerifyConditionWithBloomFilter(NeedleInHaystackColumnCondition condition,
+            Stream indexFile)
+        {
+            var bloomOffset = indexFile.ReadBinaryLongFromStream();
+            var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
+            return bloomFilter.IsInFilter(condition.Value);
+        }
+
+        private static async Task<Tuple<IndexMetadataSectionModel, long>> GetRelevantSectionInIndex(FileStream indexFile, NeedleInHaystackColumnCondition condition,
+            long metadataOffset)
+        {
             indexFile.Seek(metadataOffset, SeekOrigin.Begin);
             var metadataRows = indexFile.GetDeserializedRowsFromFileAsync<IndexMetadataSectionModel>(indexFile.Length);
             var relevantSection = default(IndexMetadataSectionModel);
@@ -87,6 +104,7 @@ namespace CovidDataLake.Queries.Executors
                     endOffset = metadataRow.Offset;
                     break;
                 }
+
                 if (string.Compare(metadataRow.Max, condition.Value, StringComparison.Ordinal) < 0 &&
                     string.Compare(metadataRow.Max, condition.Value, StringComparison.Ordinal) > 0)
                 {
@@ -94,21 +112,7 @@ namespace CovidDataLake.Queries.Executors
                 }
             }
 
-            if (relevantSection == default(IndexMetadataSectionModel))
-            {
-                return defaultResult;
-            }
-            indexFile.Seek(relevantSection.Offset, SeekOrigin.Begin);
-            var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(endOffset);
-            var indexRow = await indexRows.FirstOrDefaultAsync(row => row.Value.Equals(condition.Value));
-            // ReSharper disable once ConvertIfStatementToReturnStatement
-            if (indexRow == default(IndexValueModel))
-            {
-                return defaultResult;
-            }
-
-            return indexRow.Files.Select(file => new QueryResult(file, new[] {condition.Value}));
-
+            return new Tuple<IndexMetadataSectionModel, long>(relevantSection, endOffset);
         }
 
         private static async Task<PythonBloomFilter> GetBloomFilterFromFile(Stream stream, long offset)
@@ -124,7 +128,6 @@ namespace CovidDataLake.Queries.Executors
             await stream.ReadAsync(serializedBloomFilter);
             return new PythonBloomFilter(serializedBloomFilter);
         }
-
 
     }
 }
