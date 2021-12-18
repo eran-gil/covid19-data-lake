@@ -350,3 +350,5 @@ MigrationBackup/
 .ionide/
 
 CovidDataLake.ContentIndexer/Properties/launchSettings.json
+
+CovidDataLake.WebApi/Properties/launchSettings.json
