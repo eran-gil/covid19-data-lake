@@ -32,5 +32,10 @@ namespace CovidDataLake.Common.Probabilistic
         {
             return _hyperLogLog.Count();
         }
+
+        public void SerializeToStream(Stream stream)
+        {
+            Serializer.Serialize(stream, _hyperLogLog);
+        }
     }
 }
