@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CardinalityEstimation" Version="1.10.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.1.1" />
+    <PackageReference Include="pythonnet" Version="3.0.0-preview2021-12-03" />
     <PackageReference Include="StackExchange.Redis" Version="2.2.62" />
   </ItemGroup>
 

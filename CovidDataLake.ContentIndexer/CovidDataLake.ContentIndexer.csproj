@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CovidDataLake.Amazon\CovidDataLake.Amazon.csproj" />
-    <ProjectReference Include="..\CovidDataLake.Bloom\CovidDataLake.Bloom.csproj" />
     <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
     <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
     <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />

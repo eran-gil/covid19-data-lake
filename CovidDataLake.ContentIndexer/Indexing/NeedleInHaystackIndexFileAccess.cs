@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using CovidDataLake.Bloom;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
+using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -151,7 +151,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var bloomFilter = GetBloomFilter();
             foreach (var row in rows)
             {
-                bloomFilter.AddToFilter(row.Value);
+                bloomFilter.Add(row.Value);
             }
 
             var outputBloomFilter = bloomFilter.Serialize();

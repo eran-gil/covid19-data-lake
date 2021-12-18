@@ -17,14 +17,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Common", "Cov
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Amazon", "CovidDataLake.Amazon\CovidDataLake.Amazon.csproj", "{AE841607-09AC-4A40-B799-3AE4717CC016}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Bloom", "CovidDataLake.Bloom\CovidDataLake.Bloom.csproj", "{FC36F83A-61A7-43A3-9845-06AE975535A9}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FBDF2201-B0C4-495E-982C-7560C886165D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Queries", "CovidDataLake.Queries\CovidDataLake.Queries.csproj", "{815FDAAE-2650-42D3-A96A-BA0DA118202F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Queries", "CovidDataLake.Queries\CovidDataLake.Queries.csproj", "{815FDAAE-2650-42D3-A96A-BA0DA118202F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,10 +58,6 @@ Global
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE841607-09AC-4A40-B799-3AE4717CC016}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FC36F83A-61A7-43A3-9845-06AE975535A9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{815FDAAE-2650-42D3-A96A-BA0DA118202F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{815FDAAE-2650-42D3-A96A-BA0DA118202F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{815FDAAE-2650-42D3-A96A-BA0DA118202F}.Release|Any CPU.ActiveCfg = Release|Any CPU
