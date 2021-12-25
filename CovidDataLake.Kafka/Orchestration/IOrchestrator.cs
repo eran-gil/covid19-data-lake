@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace CovidDataLake.ContentIndexer.Orchestration
+namespace CovidDataLake.Kafka.Orchestration
 {
     public interface IOrchestrator : IDisposable
     {
