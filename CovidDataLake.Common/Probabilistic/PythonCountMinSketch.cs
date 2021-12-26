@@ -2,7 +2,7 @@
 
 namespace CovidDataLake.Common.Probabilistic
 {
-    class PythonCountMinSketch
+    public class PythonCountMinSketch
     {
 
         // ReSharper disable once NotAccessedField.Local
@@ -15,7 +15,7 @@ namespace CovidDataLake.Common.Probabilistic
         {
             PyGil = Py.GIL();
         }
-        public PythonCountMinSketch(float confidence, float errorRate) : this()
+        public PythonCountMinSketch(double confidence, double errorRate) : this()
         {
             _sketch = _pyProbables.CountMinSketch(confidence: confidence, error_rate: errorRate);
         }

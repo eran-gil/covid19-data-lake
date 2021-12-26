@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
-using CovidDataLake.Amazon;
+using CovidDataLake.Cloud.Amazon;
 
 namespace CovidDataLake.Storage.Write
 {

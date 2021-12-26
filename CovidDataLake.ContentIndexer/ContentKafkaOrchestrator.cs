@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Indexing;
-using CovidDataLake.Kafka.Consumer;
-using CovidDataLake.Kafka.Orchestration;
+using CovidDataLake.Pubsub.Kafka.Consumer;
+using CovidDataLake.Pubsub.Kafka.Orchestration;
 using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.ContentIndexer

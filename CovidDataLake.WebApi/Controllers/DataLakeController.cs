@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
-using CovidDataLake.Kafka.Producer;
+using CovidDataLake.Pubsub.Kafka.Producer;
 using CovidDataLake.Storage.Utils;
 using CovidDataLake.Storage.Write;
 using CovidDataLake.WebApi.Validation;

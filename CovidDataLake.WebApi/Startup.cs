@@ -1,12 +1,12 @@
 ﻿using Amazon.Runtime;
 using Amazon.S3;
-using CovidDataLake.Amazon;
+using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing;
-using CovidDataLake.Kafka.Producer;
-using CovidDataLake.Kafka.Producer.Configuration;
+using CovidDataLake.Pubsub.Kafka.Producer;
+using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 using CovidDataLake.Queries.Executors;
 using CovidDataLake.Storage.Write;
 using CovidDataLake.WebApi.Validation;

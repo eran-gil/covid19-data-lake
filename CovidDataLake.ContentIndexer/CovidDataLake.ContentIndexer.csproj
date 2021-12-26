@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="27.1.1" />
     <PackageReference Include="jil" Version="2.17.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1" />
@@ -19,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CovidDataLake.Amazon\CovidDataLake.Amazon.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Cloud\CovidDataLake.Cloud.csproj" />
     <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
-    <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj" />
     <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />
   </ItemGroup>
 

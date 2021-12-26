@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CovidDataLake.Amazon\CovidDataLake.Amazon.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Cloud\CovidDataLake.Cloud.csproj" />
   </ItemGroup>
 
 </Project>

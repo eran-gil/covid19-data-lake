@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CovidDataLake.Amazon;
+using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing.Models;

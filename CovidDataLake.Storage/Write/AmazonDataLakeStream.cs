@@ -1,5 +1,5 @@
 ﻿using System.IO;
-using CovidDataLake.Amazon;
+using CovidDataLake.Cloud.Amazon;
 
 namespace CovidDataLake.Storage.Write
 {

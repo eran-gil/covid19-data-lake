@@ -6,12 +6,12 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
-    <ProjectReference Include="..\CovidDataLake.Kafka\CovidDataLake.Kafka.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj" />
     <ProjectReference Include="..\CovidDataLake.Queries\CovidDataLake.Queries.csproj" />
     <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />
   </ItemGroup>

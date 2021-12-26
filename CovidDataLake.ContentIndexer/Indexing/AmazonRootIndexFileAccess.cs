@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Amazon.S3;
-using CovidDataLake.Amazon;
+using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Locking;

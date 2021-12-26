@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace CovidDataLake.Amazon
+namespace CovidDataLake.Cloud.Amazon
 {
     public interface IAmazonAdapter : IDisposable
     {

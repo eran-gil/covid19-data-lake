@@ -3,7 +3,7 @@ using CardinalityEstimation;
 
 namespace CovidDataLake.Common.Probabilistic
 {
-    class HyperLogLog
+    public class HyperLogLog
     {
         private readonly CardinalityEstimator _hyperLogLog;
         private static readonly CardinalityEstimatorSerializer Serializer;
