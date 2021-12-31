@@ -40,9 +40,28 @@ namespace CovidDataLake.Cloud.Amazon
                 Key = objectKey
             };
             using var response = await _awsClient.GetObjectAsync(getRequest);
+            if (response.HttpStatusCode != HttpStatusCode.OK)
+            {
+                return null;
+            }
             await response.WriteResponseStreamToFileAsync(downloadedFilename, false, CancellationToken.None);
 
             return downloadedFilename;
+        }
+
+        public async Task<bool> ObjectExistsAsync(string bucketName, string objectKey)
+        {
+            var request = new GetObjectMetadataRequest {BucketName = bucketName, Key = objectKey};
+            try
+            {
+                var metadataResponse = await _awsClient.GetObjectMetadataAsync(request);
+                return metadataResponse.HttpStatusCode == HttpStatusCode.OK;
+            }
+            catch
+            {
+                return false;
+            }
+
         }
 
         public async Task DeleteObjectAsync(string bucketName, string objectKey)

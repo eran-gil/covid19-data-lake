@@ -1,0 +1,51 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Common;
+using CovidDataLake.Common.Locking;
+
+namespace CovidDataLake.MetadataIndexer.Indexing
+{
+    public abstract class ProbabilisticMetadataIndexerBase<T> : IMetadataIndexer
+    {
+        private readonly ILock _fileLock;
+        private readonly IAmazonAdapter _amazonAdapter;
+        private readonly TimeSpan _lockTimeSpan;
+        private readonly string _bucketName;
+
+        protected ProbabilisticMetadataIndexerBase(ILock fileLock, IAmazonAdapter amazonAdapter, TimeSpan lockTimeSpan, string bucketName)
+        {
+            _fileLock = fileLock;
+            _amazonAdapter = amazonAdapter;
+            _lockTimeSpan = lockTimeSpan;
+            _bucketName = bucketName;
+        }
+
+        protected abstract string IndexFolder { get; }
+        protected abstract string FileType { get; }
+
+        public async Task IndexMetadata(KeyValuePair<string, string> data)
+        {
+            var indexFileName = GetIndexFilePath(data.Key);
+            await _fileLock.TakeLockAsync(indexFileName, _lockTimeSpan);
+            var downloadedIndexFile = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+            var indexObject = GetIndexObjectFromFile(downloadedIndexFile);
+            UpdateIndexObjectWithMetadata(indexObject, data.Value);
+            var outputFileName = WriteIndexObjectToFile(indexObject);
+            await _amazonAdapter.UploadObjectAsync(_bucketName, indexFileName, outputFileName);
+            await _fileLock.ReleaseLockAsync(indexFileName);
+        }
+
+        protected abstract T GetIndexObjectFromFile(string indexFile);
+
+        protected abstract string WriteIndexObjectToFile(T indexObject);
+
+        protected abstract void UpdateIndexObjectWithMetadata(T indexObject, string metadataValue);
+
+        private string GetIndexFilePath(string metadataName)
+        {
+            return $"{CommonKeys.METADATA_INDICES_FOLDER_NAME}/{IndexFolder}/{metadataName}.{FileType}";
+        }
+    }
+}

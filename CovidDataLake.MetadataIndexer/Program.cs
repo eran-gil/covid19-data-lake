@@ -1,7 +1,18 @@
 ﻿using System.Threading.Tasks;
+using Amazon.Runtime;
+using Amazon.S3;
+using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Common;
+using CovidDataLake.Common.Locking;
+using CovidDataLake.MetadataIndexer.Extraction;
+using CovidDataLake.MetadataIndexer.Indexing;
+using CovidDataLake.MetadataIndexer.Indexing.Configuration;
+using CovidDataLake.Pubsub.Kafka.Consumer;
+using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace CovidDataLake.MetadataIndexer
 {
@@ -11,6 +22,22 @@ namespace CovidDataLake.MetadataIndexer
         {
             var configuration = BuildConfiguration(args);
             IServiceCollection serviceCollection = new ServiceCollection();
+            serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
+            serviceCollection.BindConfigurationToContainer<HyperLogLogMetadataIndexConfiguration>(configuration, "HyperLogLog");
+            serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
+            serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
+            serviceCollection.AddSingleton<IMetadataExtractor, TikaMetadataExtractor>();
+            serviceCollection.AddSingleton<IMetadataIndexer, HyperLogLogMetadataIndexer>();
+            serviceCollection.AddSingleton<IMetadataIndexer, CountMinSketchMetadataIndexer>();
+            serviceCollection.AddSingleton<IConsumerFactory, KafkaConsumerFactory>();
+            var redisConnectionString = configuration.GetValue<string>("Redis");
+            var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
+            serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
+            var awsCredentials = new EnvironmentVariablesAWSCredentials();
+            serviceCollection.AddSingleton<AWSCredentials>(awsCredentials);
+            serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
+            serviceCollection.AddSingleton<ILock, RedisLock>();
+            serviceCollection.AddSingleton<IOrchestrator, MetadataKafkaOrchestrator>();
             serviceCollection.AddLogging();
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();

@@ -1,37 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.IO;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.Common.Probabilistic;
+using CovidDataLake.MetadataIndexer.Indexing.Configuration;
 
 namespace CovidDataLake.MetadataIndexer.Indexing
 {
-    public class CountMinSketchMetadataIndexer : IMetadataIndexer
+    public class CountMinSketchMetadataIndexer : ProbabilisticMetadataIndexerBase<PythonCountMinSketch>
     {
-        private readonly ILock _fileLock;
-        private readonly IAmazonAdapter _amazonAdapter;
+        private readonly double _confidence;
+        private readonly double _errorRate;
 
-        public CountMinSketchMetadataIndexer(ILock fileLock, IAmazonAdapter amazonAdapter)
+        public CountMinSketchMetadataIndexer(ILock fileLock, IAmazonAdapter amazonAdapter, CountMinSketchMetadataIndexConfiguration configuration)
+            : base(fileLock, amazonAdapter, TimeSpan.FromSeconds(configuration.LockIntervalInSeconds), configuration.BucketName) //todo: get from config
         {
-            _fileLock = fileLock;
-            _amazonAdapter = amazonAdapter;
+            _confidence = configuration.Confidence;
+            _errorRate = configuration.ErrorRate;
         }
 
-        public void IndexMetadata(KeyValuePair<string, string> data)
+        protected override string IndexFolder => "CMS_FREQUENCY";
+        protected override string FileType => "cms";
+        protected override PythonCountMinSketch GetIndexObjectFromFile(string indexFile)
         {
-            //lock index file
-            _fileLock.TakeLockAsync("", TimeSpan.MaxValue);
-            //get file from amazon
-            //load into hyperloglog
-            //if file does not exist
-            var countMinSketch = new PythonCountMinSketch(0.9, 0.1);
-            //write data
-            countMinSketch.Add(data.Value);
-            countMinSketch.ExportToFile(null);
-            //upload back
+            if (string.IsNullOrEmpty(indexFile))
+            {
+                return new PythonCountMinSketch(_confidence, _errorRate);
+            }
+            var hll = new PythonCountMinSketch(indexFile);
+            return hll;
+        }
 
-            //release lock
-            _fileLock.ReleaseLockAsync("");
+        protected override string WriteIndexObjectToFile(PythonCountMinSketch indexObject)
+        {
+            var outputFileName = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
+            indexObject.ExportToFile(outputFileName);
+            return outputFileName;
+        }
+
+        protected override void UpdateIndexObjectWithMetadata(PythonCountMinSketch indexObject, string metadataValue)
+        {
+            indexObject.Add(metadataValue);
         }
     }
 }
