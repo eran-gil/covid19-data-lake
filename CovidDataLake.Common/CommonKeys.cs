@@ -10,5 +10,9 @@ namespace CovidDataLake.Common
         public const string METADATA_INDICES_FOLDER_NAME = "__METADATA__";
         public const string CONTENT_FOLDER_NAME = "__CONTENT__";
         public const string TEMP_FOLDER_NAME = "__TEMP__";
+        public const string HLL_FOLDER_NAME = "HLL_CARDINALITY";
+        public const string HLL_FILE_TYPE = "hll";
+        public const string CMS_FOLDER_NAME = "CMS_FREQUENCY";
+        public const string CMS_FILE_TYPE = "cms";
     }
 }

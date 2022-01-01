@@ -51,7 +51,7 @@ namespace CovidDataLake.Cloud.Amazon
 
         public async Task<bool> ObjectExistsAsync(string bucketName, string objectKey)
         {
-            var request = new GetObjectMetadataRequest {BucketName = bucketName, Key = objectKey};
+            var request = new GetObjectMetadataRequest { BucketName = bucketName, Key = objectKey };
             try
             {
                 var metadataResponse = await _awsClient.GetObjectMetadataAsync(request);

@@ -14,14 +14,14 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         private readonly double _errorRate;
 
         public CountMinSketchMetadataIndexer(ILock fileLock, IAmazonAdapter amazonAdapter, CountMinSketchMetadataIndexConfiguration configuration)
-            : base(fileLock, amazonAdapter, TimeSpan.FromSeconds(configuration.LockIntervalInSeconds), configuration.BucketName) //todo: get from config
+            : base(fileLock, amazonAdapter, TimeSpan.FromSeconds(configuration.LockIntervalInSeconds), configuration.BucketName)
         {
             _confidence = configuration.Confidence;
             _errorRate = configuration.ErrorRate;
         }
 
-        protected override string IndexFolder => "CMS_FREQUENCY";
-        protected override string FileType => "cms";
+        protected override string IndexFolder => CommonKeys.CMS_FOLDER_NAME;
+        protected override string FileType => CommonKeys.CMS_FILE_TYPE;
         protected override PythonCountMinSketch GetIndexObjectFromFile(string indexFile)
         {
             if (string.IsNullOrEmpty(indexFile))

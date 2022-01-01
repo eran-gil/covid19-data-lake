@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CovidDataLake.Queries.Exceptions;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using CovidDataLake.Queries.Executors;
 using CovidDataLake.Queries.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace CovidDataLake.WebApi.Controllers
 {
@@ -28,8 +28,8 @@ namespace CovidDataLake.WebApi.Controllers
             return Ok("ok");
         }
 
-        [HttpPost]
-        public ActionResult<IEnumerable<QueryResult>> Post([BindRequired] [FromQuery(Name = "queryType")] string queryType,
+        [HttpPost("{queryBody}")]
+        public ActionResult<IEnumerable<QueryResult>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
              [BindRequired][FromBody] object queryBody)
         {
             var relevantQueryExecutor = _queryExecutors.FirstOrDefault(executor => executor.CanHandle(queryType));

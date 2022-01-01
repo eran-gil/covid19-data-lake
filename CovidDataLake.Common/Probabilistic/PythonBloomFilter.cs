@@ -38,7 +38,7 @@ namespace CovidDataLake.Common.Probabilistic
 
         public bool IsInFilter(string value)
         {
-            return (bool) _filter.check(value);
+            return (bool)_filter.check(value);
         }
 
         public byte[] Serialize()

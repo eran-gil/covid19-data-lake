@@ -1,8 +1,9 @@
-﻿namespace CovidDataLake.MetadataIndexer.Indexing.Configuration
+﻿using CovidDataLake.Cloud.Amazon.Configuration;
+
+namespace CovidDataLake.MetadataIndexer.Indexing.Configuration
 {
-    public class ProbabilisticMetadataIndexConfigurationBase
+    public class ProbabilisticMetadataIndexConfigurationBase : BasicAmazonIndexFileConfiguration
     {
-        public string BucketName { get; set; }
         public int LockIntervalInSeconds { get; set; }
     }
 
@@ -13,6 +14,6 @@
     public class CountMinSketchMetadataIndexConfiguration : ProbabilisticMetadataIndexConfigurationBase
     {
         public double Confidence { get; set; }
-        public double ErrorRate{ get; set; }
+        public double ErrorRate { get; set; }
     }
 }

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CovidDataLake.Cloud\CovidDataLake.Cloud.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
   </ItemGroup>
 
 </Project>

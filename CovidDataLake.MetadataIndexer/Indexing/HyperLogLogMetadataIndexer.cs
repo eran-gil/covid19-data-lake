@@ -11,12 +11,12 @@ namespace CovidDataLake.MetadataIndexer.Indexing
     public class HyperLogLogMetadataIndexer : ProbabilisticMetadataIndexerBase<HyperLogLog>
     {
         public HyperLogLogMetadataIndexer(ILock fileLock, IAmazonAdapter amazonAdapter, HyperLogLogMetadataIndexConfiguration configuration)
-            : base(fileLock, amazonAdapter, TimeSpan.FromSeconds(configuration.LockIntervalInSeconds), configuration.BucketName) //todo: get from config
+            : base(fileLock, amazonAdapter, TimeSpan.FromSeconds(configuration.LockIntervalInSeconds), configuration.BucketName)
         {
         }
-        
-        protected override string IndexFolder => "HLL_Cardinality";
-        protected override string FileType => "hll";
+
+        protected override string IndexFolder => CommonKeys.HLL_FOLDER_NAME;
+        protected override string FileType => CommonKeys.HLL_FILE_TYPE;
         protected override HyperLogLog GetIndexObjectFromFile(string indexFile)
         {
             if (string.IsNullOrEmpty(indexFile))

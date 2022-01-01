@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Probabilistic;
-using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -20,7 +20,7 @@ namespace CovidDataLake.Queries.Executors
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly string _bucketName;
 
-        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, BasicAmazonIndexConfiguration indexConfiguration)
+        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration indexConfiguration)
         {
             _rootIndexAccess = rootIndexAccess;
             _amazonAdapter = amazonAdapter;
@@ -33,11 +33,11 @@ namespace CovidDataLake.Queries.Executors
             return queryType == "NeedleInHaystack";
         }
 
-        public override IEnumerable<QueryResult> Execute(NeedleInHaystackQuery query)
+        public override Task<IEnumerable<QueryResult>> Execute(NeedleInHaystackQuery query)
         {
             var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults().SelectMany(r => r);
             var filteredResults = Enumerable.Empty<IGrouping<string, QueryResult>>();
-            var groupedResults = queryResults.GroupBy(result => result.FileName);
+            var groupedResults = queryResults.GroupBy(result => result["FileName"].ToString());
             filteredResults = query.Relation switch
             {
                 ConditionRelation.And => groupedResults.Where(group => group.Count() == query.Conditions.Count()),
@@ -46,9 +46,19 @@ namespace CovidDataLake.Queries.Executors
             };
 
             var mergedResults =
-                filteredResults.Select(group => new QueryResult(group.Key, group.SelectMany(g => g.HitValues)));
+                filteredResults.Select(CreateQueryResultFromGroup);
 
-            return mergedResults;
+            return Task.FromResult(mergedResults);
+        }
+
+        private static QueryResult CreateQueryResultFromGroup(IGrouping<string, QueryResult> @group)
+        {
+            var result = new QueryResult
+            {
+                ["FileName"] = @group.Key,
+                ["HitValues"] = @group.SelectMany(g => (IEnumerable<string>)g["HitValues"])
+            };
+            return result;
         }
 
         private async Task<IEnumerable<QueryResult>> GetFilesMatchingCondition(NeedleInHaystackColumnCondition condition)
@@ -68,16 +78,17 @@ namespace CovidDataLake.Queries.Executors
             {
                 return defaultResult;
             }
-            
+
             var (relevantSection, endOffset) = await GetRelevantSectionInIndex(indexFile, condition, metadataOffset);
             if (relevantSection == default(IndexMetadataSectionModel))
             {
                 return defaultResult;
             }
             var indexRow = await GetIndexRowForCondition(condition, indexFile, relevantSection, endOffset);
-            return indexRow == default(IndexValueModel) ?
-                defaultResult :
-                indexRow.Files.Select(file => new QueryResult(file, new[] {condition.Value}));
+            return indexRow == default(IndexValueModel)
+                ? defaultResult
+                : indexRow.Files.Select(file =>
+                    new QueryResult { ["FileName"] = file, ["HitValues"] = new[] { condition.Value } });
         }
 
         private static async Task<IndexValueModel> GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,

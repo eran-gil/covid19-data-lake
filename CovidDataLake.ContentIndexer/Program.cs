@@ -2,6 +2,7 @@
 using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
@@ -26,7 +27,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
             serviceCollection.BindConfigurationToContainer<RedisIndexCacheConfiguration>(configuration, "RedisIndexCache");
             serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
-            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexConfiguration>(configuration, "AmazonIndexFile");
+            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<NeedleInHaystackIndexConfiguration>(configuration, "NeedleInHaystackIndex");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
             var redisConnectionString = configuration.GetValue<string>("Redis");

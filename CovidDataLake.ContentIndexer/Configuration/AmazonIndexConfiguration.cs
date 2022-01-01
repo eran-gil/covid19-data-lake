@@ -1,11 +1,9 @@
-﻿namespace CovidDataLake.ContentIndexer.Configuration
-{
-    public class BasicAmazonIndexConfiguration
-    {
-        public string BucketName { get; set; }
-    }
+﻿using CovidDataLake.Cloud.Amazon.Configuration;
 
-    public class AmazonRootIndexFileConfiguration : BasicAmazonIndexConfiguration
+namespace CovidDataLake.ContentIndexer.Configuration
+{
+
+    public class AmazonRootIndexFileConfiguration : BasicAmazonIndexFileConfiguration
     {
         public string RootIndexName { get; set; }
         public int LockTimeSpanInSeconds { get; set; }

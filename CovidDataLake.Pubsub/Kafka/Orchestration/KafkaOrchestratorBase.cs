@@ -7,7 +7,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
 {
     public abstract class KafkaOrchestratorBase : IOrchestrator
     {
-        
+
         private readonly IConsumer _consumer;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -27,7 +27,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
         }
 
         protected abstract Task HandleMessage(string filename);
-       
+
         public void Dispose()
         {
             _consumer?.Dispose();

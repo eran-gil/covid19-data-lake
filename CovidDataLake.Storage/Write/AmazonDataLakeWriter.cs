@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Common;
 
 namespace CovidDataLake.Storage.Write
 {
@@ -9,7 +10,6 @@ namespace CovidDataLake.Storage.Write
     {
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly string _bucketName;
-        private const string TempFolderPath = "temp";
 
         public AmazonDataLakeWriter(IAmazonAdapter amazonAdapter)
         {
@@ -20,7 +20,7 @@ namespace CovidDataLake.Storage.Write
         public string GenerateFilePath(string fileType)
         {
             var today = DateTime.Today;
-            var path = $"files\\{today.Year}\\{today.Month}\\{today.Day}";
+            var path = $"{CommonKeys.CONTENT_FOLDER_NAME}\\{today.Year}\\{today.Month}\\{today.Day}";
             var filename = Guid.NewGuid().ToString();
             return $"{path}\\{filename}{fileType}";
         }
@@ -36,7 +36,7 @@ namespace CovidDataLake.Storage.Write
         private static string GetTempFilePathFromOriginalFilename(string filepath)
         {
             var filename = Path.GetFileName(filepath);
-            var tempFilePath = TempFolderPath + "\\" + filename;
+            var tempFilePath = CommonKeys.TEMP_FOLDER_NAME + "\\" + filename;
             return tempFilePath;
         }
 

@@ -1,6 +1,7 @@
 ﻿using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
@@ -40,7 +41,7 @@ namespace CovidDataLake.WebApi
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
             services.BindConfigurationToContainer<RedisIndexCacheConfiguration>(Configuration, "RedisIndexCache");
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
-            services.BindConfigurationToContainer<BasicAmazonIndexConfiguration>(Configuration, "AmazonIndexFile");
+            services.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(Configuration, "AmazonIndexFile");
             var redisConnectionString = Configuration.GetValue<string>("Redis");
             var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
             services.AddSingleton<IConnectionMultiplexer>(redisConnection);
@@ -51,6 +52,8 @@ namespace CovidDataLake.WebApi
             services.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             services.AddSingleton<ILock, RedisLock>();
             services.AddSingleton<IQueryExecutor, NeedleInHaystackQueryExecutor>();
+            services.AddSingleton<IQueryExecutor, FrequencyQueryExecutor>();
+            services.AddSingleton<IQueryExecutor, CardinalityQueryExecutor>();
 
             services.AddSingleton<IDataLakeWriter, FileStreamDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();

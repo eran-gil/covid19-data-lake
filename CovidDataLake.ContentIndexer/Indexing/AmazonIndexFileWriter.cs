@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
-using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
 namespace CovidDataLake.ContentIndexer.Indexing
@@ -14,7 +14,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly IIndexFileAccess _indexFileAccess;
         private readonly string _bucketName;
 
-        public AmazonIndexFileWriter(IAmazonAdapter amazonAdapter, BasicAmazonIndexConfiguration configuration, IIndexFileAccess indexFileAccess)
+        public AmazonIndexFileWriter(IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration configuration, IIndexFileAccess indexFileAccess)
         {
             _amazonAdapter = amazonAdapter;
             _indexFileAccess = indexFileAccess;
