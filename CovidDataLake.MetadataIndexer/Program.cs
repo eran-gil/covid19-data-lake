@@ -33,12 +33,14 @@ namespace CovidDataLake.MetadataIndexer
             var redisConnectionString = configuration.GetValue<string>("Redis");
             var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
             serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
-            var awsCredentials = new EnvironmentVariablesAWSCredentials();
+            var accessKey = configuration.GetValue<string>("AWS_ACCESS_KEY_ID");
+            var secretKey = configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY");
+            var awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
             serviceCollection.AddSingleton<AWSCredentials>(awsCredentials);
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddSingleton<IOrchestrator, MetadataKafkaOrchestrator>();
-            serviceCollection.AddLogging();
+            /*serviceCollection.AddLogging();*/
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
             await orchestrator.StartOrchestration();

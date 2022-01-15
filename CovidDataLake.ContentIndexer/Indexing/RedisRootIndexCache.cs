@@ -33,7 +33,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
                 await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-                columnUpdate.Rows.AsParallel().ForAll(async row => await UpdateRowCacheInRedis(db, row));
+
+                async void UpdateRowInCache(RootIndexRow row) => await UpdateRowCacheInRedis(db, row);
+
+                columnUpdate.Rows.AsParallel().ForAll(UpdateRowInCache);
                 await _lockMechanism.ReleaseLockAsync(redisLockKey);
             }
         }
