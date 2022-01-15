@@ -58,7 +58,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(IAsyncGrouping<string, KeyValuePair<string, string>> fileGroup,
             string originFilename)
         {
-            var values = await fileGroup.Select(kvp => kvp.Key).ToListAsync();
+            var values = await fileGroup.OrderBy(kvp=> kvp.Key).Select(kvp => kvp.Key).ToListAsync();
             var indexFileName = fileGroup.Key;
             return await _indexFileWriter.UpdateIndexFileWithValues(values, indexFileName, originFilename);
         }

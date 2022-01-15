@@ -66,6 +66,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var redisLockKey = GetRedisLockKeyForColumn(column);
             await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
             var indexFileMaxValue = (await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1)).FirstOrDefault();
+            if (indexFileMaxValue.IsNull) return null;
             var indexFile = await db.HashGetAsync(redisValuesToFilesKey, indexFileMaxValue);
             await _lockMechanism.ReleaseLockAsync(redisLockKey);
             if (indexFile == default) return null;
