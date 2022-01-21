@@ -44,6 +44,9 @@
     <Reference Include="AWSSDK.S3, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
       <HintPath>..\packages\AWSSDK.S3.3.7.1.14\lib\net45\AWSSDK.S3.dll</HintPath>
     </Reference>
+    <Reference Include="CardinalityEstimation, Version=1.10.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\CardinalityEstimation.1.10.0\lib\netstandard2.0\CardinalityEstimation.dll</HintPath>
+    </Reference>
     <Reference Include="Confluent.Kafka, Version=1.8.2.0, Culture=neutral, PublicKeyToken=12c514ca49093d1e, processorArchitecture=MSIL">
       <HintPath>..\packages\Confluent.Kafka.1.8.2\lib\net46\Confluent.Kafka.dll</HintPath>
     </Reference>
@@ -134,6 +137,9 @@
     <Reference Include="Jil, Version=2.17.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Jil.2.17.0\lib\net45\Jil.dll</HintPath>
     </Reference>
+    <Reference Include="Maybe, Version=1.0.123.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Maybe.NET.1.0.123\lib\netstandard2.0\Maybe.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.1.1.1\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
@@ -184,11 +190,17 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="MurmurHash, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\murmurhash.1.0.3\lib\net45\MurmurHash.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Pipelines.Sockets.Unofficial, Version=1.0.0.0, Culture=neutral, PublicKeyToken=42ea0a778e13fbe2, processorArchitecture=MSIL">
       <HintPath>..\packages\Pipelines.Sockets.Unofficial.2.1.16\lib\net472\Pipelines.Sockets.Unofficial.dll</HintPath>
+    </Reference>
+    <Reference Include="Python.Runtime, Version=3.0.0.0, Culture=neutral, PublicKeyToken=5000fea6cba702dd, processorArchitecture=MSIL">
+      <HintPath>..\packages\pythonnet.3.0.0-preview2022-01-03\lib\netstandard2.0\Python.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Sigil, Version=4.7.0.0, Culture=neutral, PublicKeyToken=2d06c3494341c8ab, processorArchitecture=MSIL">
       <HintPath>..\packages\Sigil.4.7.0\lib\net45\Sigil.dll</HintPath>
@@ -395,6 +407,10 @@
     <ProjectReference Include="..\CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj">
       <Project>{F209A20C-F6DC-417F-AB2C-8835137C1445}</Project>
       <Name>CovidDataLake.Pubsub</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj">
+      <Project>{A13D5BF2-9557-4609-95CD-D941EF9BEB77}</Project>
+      <Name>CovidDataLake.Storage</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

@@ -55,7 +55,7 @@ namespace CovidDataLake.WebApi
             services.AddSingleton<IQueryExecutor, FrequencyQueryExecutor>();
             services.AddSingleton<IQueryExecutor, CardinalityQueryExecutor>();
 
-            services.AddSingleton<IDataLakeWriter, FileStreamDataLakeWriter>();
+            services.AddSingleton<IDataLakeWriter, AmazonDataLakeWriter>();
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
             services.AddSwaggerGen();

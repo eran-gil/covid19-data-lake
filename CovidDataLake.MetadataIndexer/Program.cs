@@ -1,7 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.MetadataIndexer.Extraction;
@@ -26,6 +28,7 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.BindConfigurationToContainer<HyperLogLogMetadataIndexConfiguration>(configuration, "HyperLogLog");
             serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
+            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexConfig");
             serviceCollection.AddSingleton<IMetadataExtractor, TikaMetadataExtractor>();
             serviceCollection.AddSingleton<IMetadataIndexer, HyperLogLogMetadataIndexer>();
             serviceCollection.AddSingleton<IMetadataIndexer, CountMinSketchMetadataIndexer>();
@@ -48,10 +51,18 @@ namespace CovidDataLake.MetadataIndexer
 
         private static IConfigurationRoot BuildConfiguration(string[] args)
         {
+            foreach (var arg in args)
+            {
+                if (arg.IndexOf("=", StringComparison.Ordinal) < 0) continue;
+                var splitted = arg.Split('=');
+                var key = splitted[0];
+                var val = splitted[1];
+                Environment.SetEnvironmentVariable(key, val);
+            }
             var configuration = new ConfigurationBuilder()
+                .AddCommandLine(args)
                 .AddJsonFile("appsettings.json", false, true)
                 .AddEnvironmentVariables()
-                .AddCommandLine(args)
                 .Build();
             return configuration;
         }

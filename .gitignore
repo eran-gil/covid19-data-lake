@@ -352,3 +352,5 @@ MigrationBackup/
 CovidDataLake.ContentIndexer/Properties/launchSettings.json
 
 CovidDataLake.WebApi/Properties/launchSettings.json
+
+CovidDataLake.WebApi/__TEMP__/

@@ -45,7 +45,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var outputFileName = downloadedFileName + "_new";
             await WriteIndexRowsToFile(outputFileName, outputRows);
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, outputFileName);
-            File.Delete(downloadedFileName);
             await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
             await _cache.UpdateColumnRanges(columnMappings);
         }
@@ -94,7 +93,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var file = FileCreator.CreateFileAndPath(fileName);
             file.Close();
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName);
-            File.Delete(fileName);
         }
 
         private static bool ValidateRowWithRequest(string column, string val, RootIndexRow indexRow)

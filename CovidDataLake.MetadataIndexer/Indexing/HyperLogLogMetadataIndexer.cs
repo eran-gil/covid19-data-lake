@@ -5,6 +5,7 @@ using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.MetadataIndexer.Indexing.Configuration;
+using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.MetadataIndexer.Indexing
 {
@@ -31,7 +32,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         protected override string WriteIndexObjectToFile(HyperLogLog indexObject)
         {
             var outputFileName = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            var outputStream = File.OpenRead(outputFileName);
+            var outputStream = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             indexObject.SerializeToStream(outputStream);
             return outputFileName;
         }

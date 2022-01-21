@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using CovidDataLake.Common.Python;
 using Python.Runtime;
 
 namespace CovidDataLake.Common.Probabilistic
@@ -13,7 +14,7 @@ namespace CovidDataLake.Common.Probabilistic
 
         static PythonBloomFilter()
         {
-            PyGil = Py.GIL();
+            PyGil = PythonGIL.GILState;
         }
 
         public PythonBloomFilter(int capacity, double errorRate) : this()

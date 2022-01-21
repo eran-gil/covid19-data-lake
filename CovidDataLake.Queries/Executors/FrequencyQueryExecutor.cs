@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
@@ -27,7 +28,8 @@ namespace CovidDataLake.Queries.Executors
             var downloadedFile = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
             if (string.IsNullOrEmpty(downloadedFile))
                 return Enumerable.Empty<QueryResult>();
-            var cms = new PythonCountMinSketch(downloadedFile);
+            using var stream = File.OpenRead(downloadedFile);
+            var cms = new StringCountMinSketch(stream);
             var result = new QueryResult { ["Frequency"] = cms.GetOccurrences(query.MetadataValue) };
             return new List<QueryResult> { result };
         }

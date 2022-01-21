@@ -8,7 +8,7 @@ using CovidDataLake.MetadataIndexer.Indexing.Configuration;
 
 namespace CovidDataLake.MetadataIndexer.Indexing
 {
-    public class CountMinSketchMetadataIndexer : ProbabilisticMetadataIndexerBase<PythonCountMinSketch>
+    public class CountMinSketchMetadataIndexer : ProbabilisticMetadataIndexerBase<StringCountMinSketch>
     {
         private readonly double _confidence;
         private readonly double _errorRate;
@@ -22,24 +22,27 @@ namespace CovidDataLake.MetadataIndexer.Indexing
 
         protected override string IndexFolder => CommonKeys.CMS_FOLDER_NAME;
         protected override string FileType => CommonKeys.CMS_FILE_TYPE;
-        protected override PythonCountMinSketch GetIndexObjectFromFile(string indexFile)
+        protected override StringCountMinSketch GetIndexObjectFromFile(string indexFile)
         {
             if (string.IsNullOrEmpty(indexFile))
             {
-                return new PythonCountMinSketch(_confidence, _errorRate);
+                return new StringCountMinSketch(_confidence, _errorRate);
             }
-            var hll = new PythonCountMinSketch(indexFile);
+
+            using var stream = File.OpenRead(indexFile);
+            var hll = new StringCountMinSketch(stream);
             return hll;
         }
 
-        protected override string WriteIndexObjectToFile(PythonCountMinSketch indexObject)
+        protected override string WriteIndexObjectToFile(StringCountMinSketch indexObject)
         {
             var outputFileName = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            indexObject.ExportToFile(outputFileName);
+            using var stream = File.OpenWrite(outputFileName);
+            indexObject.SerializeToStream(stream);
             return outputFileName;
         }
 
-        protected override void UpdateIndexObjectWithMetadata(PythonCountMinSketch indexObject, string metadataValue)
+        protected override void UpdateIndexObjectWithMetadata(StringCountMinSketch indexObject, string metadataValue)
         {
             indexObject.Add(metadataValue);
         }

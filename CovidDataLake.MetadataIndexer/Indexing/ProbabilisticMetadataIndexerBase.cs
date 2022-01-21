@@ -29,7 +29,17 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         {
             var indexFileName = GetIndexFilePath(data.Key);
             await _fileLock.TakeLockAsync(indexFileName, _lockTimeSpan);
-            var downloadedIndexFile = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+
+            string downloadedIndexFile;
+            try
+            {
+                downloadedIndexFile = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+            }
+            catch (Exception)
+            {
+                downloadedIndexFile = null;
+            }
+
             var indexObject = GetIndexObjectFromFile(downloadedIndexFile);
             UpdateIndexObjectWithMetadata(indexObject, data.Value);
             var outputFileName = WriteIndexObjectToFile(indexObject);
