@@ -169,23 +169,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return new PythonBloomFilter(serializedBloomFilter);
         }
 
-        /*private static byte[] GetSerializedBloomFilterFromFile(OptionalFileStream stream)
-        {
-            var inputFile = stream.BaseStream;
-            if (inputFile == null)
-            {
-                return null;
-            }
-
-            inputFile.Seek(-(sizeof(long)), SeekOrigin.End);
-            var bloomOffset = inputFile.ReadBinaryLongFromStream();
-            inputFile.Seek(bloomOffset, SeekOrigin.Begin);
-            var bloomOffsetLength = (inputFile.Length - 2 * sizeof(long)) - bloomOffset;
-            var serializedBloomFilter = new byte[bloomOffsetLength];
-            inputFile.ReadAsync(serializedBloomFilter);
-            return serializedBloomFilter;
-        }*/
-
         private IEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IList<FileRowMetadata> rowMetadatas)
         {
             var numOfRows = rowMetadatas.Count;

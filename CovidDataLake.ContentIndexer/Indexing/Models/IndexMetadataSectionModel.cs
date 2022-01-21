@@ -2,6 +2,10 @@
 {
     public class IndexMetadataSectionModel
     {
+
+        public IndexMetadataSectionModel()
+        {
+        }
         public IndexMetadataSectionModel(string min, string max, long offset)
         {
             Min = min;
