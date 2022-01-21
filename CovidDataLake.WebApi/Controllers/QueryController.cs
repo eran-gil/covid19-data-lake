@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using CovidDataLake.Queries.Exceptions;
 using CovidDataLake.Queries.Executors;
 using CovidDataLake.Queries.Models;
@@ -28,8 +29,8 @@ namespace CovidDataLake.WebApi.Controllers
             return Ok("ok");
         }
 
-        [HttpPost("{queryBody}")]
-        public ActionResult<IEnumerable<QueryResult>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
+        [HttpPost]
+        public async Task<ActionResult<IEnumerable<QueryResult>>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
              [BindRequired][FromBody] object queryBody)
         {
             var relevantQueryExecutor = _queryExecutors.FirstOrDefault(executor => executor.CanHandle(queryType));
@@ -39,14 +40,15 @@ namespace CovidDataLake.WebApi.Controllers
             }
 
             string body;
+            Request.Body.Seek(0, SeekOrigin.Begin);
             using (var reader = new StreamReader(Request.Body))
             {
-                body = reader.ReadToEnd();
+                body = await reader.ReadToEndAsync();
             }
 
             try
             {
-                var results = relevantQueryExecutor.ExecuteFromString(body);
+                var results = await relevantQueryExecutor.ExecuteFromString(body);
                 return Ok(results);
             }
 

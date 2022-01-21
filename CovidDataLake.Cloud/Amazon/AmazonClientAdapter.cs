@@ -1,10 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
+using CovidDataLake.Common;
 
 namespace CovidDataLake.Cloud.Amazon
 {
@@ -33,20 +35,29 @@ namespace CovidDataLake.Cloud.Amazon
 
         public async Task<string> DownloadObjectAsync(string bucketName, string objectKey)
         {
-            var downloadedFilename = Guid.NewGuid().ToString();
+            var downloadedFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
             var getRequest = new GetObjectRequest
             {
                 BucketName = bucketName,
                 Key = objectKey
             };
-            using var response = await _awsClient.GetObjectAsync(getRequest);
-            if (response.HttpStatusCode != HttpStatusCode.OK)
+            try
             {
-                return null;
-            }
-            await response.WriteResponseStreamToFileAsync(downloadedFilename, false, CancellationToken.None);
+                using var response = await _awsClient.GetObjectAsync(getRequest);
+                await response.WriteResponseStreamToFileAsync(downloadedFilename, false, CancellationToken.None);
 
-            return downloadedFilename;
+                return downloadedFilename;
+            }
+            
+            catch (AmazonS3Exception e)
+            {
+                if (e.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new ResourceNotFoundException(bucketName, objectKey);
+                }
+
+                throw new CloudException(e);
+            }
         }
 
         public async Task<bool> ObjectExistsAsync(string bucketName, string objectKey)

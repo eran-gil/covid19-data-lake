@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
-using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
@@ -59,14 +57,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             try
             {
                 downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-
             }
-            catch (AmazonS3Exception e)
+            catch (ResourceNotFoundException)
             {
-                if (e.StatusCode == HttpStatusCode.NotFound)
-                {
-                    await CreateRootIndexFile();
-                }
+                await CreateRootIndexFile();
             }
             await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
 

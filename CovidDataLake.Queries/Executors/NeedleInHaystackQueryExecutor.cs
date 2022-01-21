@@ -10,6 +10,7 @@ using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using CovidDataLake.Queries.Exceptions;
 using CovidDataLake.Queries.Models;
 
 namespace CovidDataLake.Queries.Executors
@@ -17,14 +18,11 @@ namespace CovidDataLake.Queries.Executors
     public class NeedleInHaystackQueryExecutor : BaseQueryExecutor<NeedleInHaystackQuery>
     {
         private readonly IRootIndexAccess _rootIndexAccess;
-        private readonly IAmazonAdapter _amazonAdapter;
-        private readonly string _bucketName;
 
-        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration indexConfiguration)
+        public NeedleInHaystackQueryExecutor(IRootIndexAccess rootIndexAccess, IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration indexConfiguration) :
+            base(amazonAdapter, indexConfiguration)
         {
             _rootIndexAccess = rootIndexAccess;
-            _amazonAdapter = amazonAdapter;
-            _bucketName = indexConfiguration.BucketName;
 
         }
 
@@ -35,6 +33,10 @@ namespace CovidDataLake.Queries.Executors
 
         public override Task<IEnumerable<QueryResult>> Execute(NeedleInHaystackQuery query)
         {
+            if (query.Conditions == null || !query.Conditions.Any())
+            {
+                throw new InvalidQueryFormatException();
+            }
             var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults().SelectMany(r => r);
             var filteredResults = Enumerable.Empty<IGrouping<string, QueryResult>>();
             var groupedResults = queryResults.GroupBy(result => result["FileName"].ToString());
@@ -70,7 +72,11 @@ namespace CovidDataLake.Queries.Executors
                 return defaultResult;
             }
 
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+            var downloadedFileName = await this.DownloadIndexFile(indexFileName);//await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+            if (string.IsNullOrEmpty(downloadedFileName))
+            {
+                return Enumerable.Empty<QueryResult>();
+            }
             using var indexFile = File.OpenRead(downloadedFileName);
             indexFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = indexFile.ReadBinaryLongFromStream();
