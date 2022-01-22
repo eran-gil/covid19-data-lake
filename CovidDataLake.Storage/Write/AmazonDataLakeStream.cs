@@ -74,14 +74,15 @@ namespace CovidDataLake.Storage.Write
 
         private void WriteToAmazon()
         {
-            if (!_writtenToAmazon)
+            lock (_lockObject)
             {
-                lock (_lockObject)
+                if (_writtenToAmazon)
                 {
-                    _amazonAdapter.UploadObjectAsync(_bucketName, _targetFilename, _fileStream.Name);
+                    return;
                 }
+                _amazonAdapter.UploadObjectAsync(_bucketName, _targetFilename, _fileStream.Name);
+                _writtenToAmazon = true;
             }
-            _writtenToAmazon = true;
         }
     }
 }

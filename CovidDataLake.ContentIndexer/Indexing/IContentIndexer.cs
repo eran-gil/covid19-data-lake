@@ -5,6 +5,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IContentIndexer
     {
-        Task IndexTableAsync(IFileTableWrapper tableWrapper);
+        Task IndexTableAsync(IFileTableWrapper tableWrapper, string originFileName);
     }
 }

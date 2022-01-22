@@ -377,6 +377,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extraction\Configuration\MetadataExtractorConfiguration.cs" />
     <Compile Include="Extraction\IMetadataExtractor.cs" />
     <Compile Include="Extraction\TikaMetadataExtractor.cs" />
     <Compile Include="Indexing\Configuration\ProbabilisticMetadataIndexConfiguration.cs" />

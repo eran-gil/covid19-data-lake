@@ -7,6 +7,7 @@ using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.MetadataIndexer.Extraction;
+using CovidDataLake.MetadataIndexer.Extraction.Configuration;
 using CovidDataLake.MetadataIndexer.Indexing;
 using CovidDataLake.MetadataIndexer.Indexing.Configuration;
 using CovidDataLake.Pubsub.Kafka.Consumer;
@@ -25,6 +26,7 @@ namespace CovidDataLake.MetadataIndexer
             var configuration = BuildConfiguration(args);
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
+            serviceCollection.BindConfigurationToContainer<MetadataExtractorConfiguration>(configuration, "MetadataExtraction");
             serviceCollection.BindConfigurationToContainer<HyperLogLogMetadataIndexConfiguration>(configuration, "HyperLogLog");
             serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");

@@ -34,7 +34,7 @@ namespace CovidDataLake.ContentIndexer
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
             //todo: add handling of no available
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName);
-            await _contentIndexer.IndexTableAsync(tableWrapper);
+            await _contentIndexer.IndexTableAsync(tableWrapper, filename);
 
         }
     }

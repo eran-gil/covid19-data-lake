@@ -7,7 +7,7 @@ namespace CovidDataLake.Common
         public const string END_OF_INDEX_FLAG = "__END_OF_INDEX__";
         public const string INDEX_FOLDER_NAME = "__INDEX__";
         public const string COLUMN_INDICES_FOLDER_NAME = "__COLUMNS__";
-        public const string METADATA_INDICES_FOLDER_NAME = "__METADATA__";
+        public const string METADATA_INDICES_FOLDER_NAME = $"{INDEX_FOLDER_NAME}/__METADATA__";
         public const string CONTENT_FOLDER_NAME = "__CONTENT__";
         public const string TEMP_FOLDER_NAME = "__TEMP__";
         public const string HLL_FOLDER_NAME = "HLL_CARDINALITY";

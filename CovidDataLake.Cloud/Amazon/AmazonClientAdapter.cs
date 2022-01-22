@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +36,14 @@ namespace CovidDataLake.Cloud.Amazon
 
         public async Task<string> DownloadObjectAsync(string bucketName, string objectKey)
         {
-            var downloadedFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
+            var fileType = objectKey.Split('.').LastOrDefault();
+            if (!string.IsNullOrEmpty(fileType))
+            {
+                fileType = "." + fileType;
+            }
+
+            var filename = $"{Guid.NewGuid()}{fileType}";
+            var downloadedFilePath = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, filename);
             var getRequest = new GetObjectRequest
             {
                 BucketName = bucketName,
@@ -44,9 +52,9 @@ namespace CovidDataLake.Cloud.Amazon
             try
             {
                 using var response = await _awsClient.GetObjectAsync(getRequest);
-                await response.WriteResponseStreamToFileAsync(downloadedFilename, false, CancellationToken.None);
+                await response.WriteResponseStreamToFileAsync(downloadedFilePath, false, CancellationToken.None);
 
-                return downloadedFilename;
+                return downloadedFilePath;
             }
             
             catch (AmazonS3Exception e)

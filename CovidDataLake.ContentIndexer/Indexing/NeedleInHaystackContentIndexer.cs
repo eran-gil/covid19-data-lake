@@ -18,7 +18,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _rootIndexAccess = rootIndexAccess;
         }
 
-        public async Task IndexTableAsync(IFileTableWrapper tableWrapper)
+        public async Task IndexTableAsync(IFileTableWrapper tableWrapper, string originFileName)
         {
             var columns = await tableWrapper.GetColumns();
 
@@ -26,20 +26,20 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
             foreach (var columnMapping in valuesToFilesMapping)
             {
-                var columnUpdate = await UpdateIndexWithColumnMapping(tableWrapper, columnMapping);
+                var columnUpdate = await UpdateIndexWithColumnMapping(originFileName, columnMapping);
                 columnUpdates.Add(columnUpdate);
             }
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
 
         }
 
-        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(IFileTableWrapper tableWrapper, KeyValuePair<string, IAsyncEnumerable<KeyValuePair<string, string>>> columnMapping)
+        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string originFilename, KeyValuePair<string, IAsyncEnumerable<KeyValuePair<string, string>>> columnMapping)
         {
             var (columnName, valuesMapping) = columnMapping;
             var fileGroups = valuesMapping.GroupBy(kvp => kvp.Value);
 
             var updateIndexTasks = await fileGroups
-                .Select(group => WriteValuesGroupToFile(group, tableWrapper.Filename))
+                .Select(group => WriteValuesGroupToFile(group, originFilename))
                 .ToArrayAsync();
             await Task.WhenAll(updateIndexTasks);
             foreach (var updateIndexTask in updateIndexTasks)
