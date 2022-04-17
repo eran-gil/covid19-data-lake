@@ -25,7 +25,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         protected abstract string IndexFolder { get; }
         protected abstract string FileType { get; }
 
-        public async Task IndexMetadata(KeyValuePair<string, string> data)
+        public async Task IndexMetadata(KeyValuePair<string, List<string>> data)
         {
             var indexFileName = GetIndexFilePath(data.Key);
             await _fileLock.TakeLockAsync(indexFileName, _lockTimeSpan);
@@ -51,7 +51,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
 
         protected abstract string WriteIndexObjectToFile(T indexObject);
 
-        protected abstract void UpdateIndexObjectWithMetadata(T indexObject, string metadataValue);
+        protected abstract void UpdateIndexObjectWithMetadata(T indexObject, List<string> metadataValues);
 
         private string GetIndexFilePath(string metadataName)
         {

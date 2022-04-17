@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
+using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
 namespace CovidDataLake.ContentIndexer.Indexing
@@ -21,8 +22,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _bucketName = configuration.BucketName;
         }
 
-        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<string> values,
-            string indexFilename, string originFilename)
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<RawEntry> values, string indexFilename)
         {
             //todo: test after refactor
             //todo: test update integrity
@@ -37,7 +37,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 indexFilename = downloadedFilename;
             }
 
-            var rootIndexRows = await _indexFileAccess.CreateUpdatedIndexFileWithValues(downloadedFilename, values, originFilename);
+            var rootIndexRows = await _indexFileAccess.CreateUpdatedIndexFileWithValues(downloadedFilename, values);
             for (var i = 0; i < rootIndexRows.Count; i++)
             {
                 var rootIndexRow = rootIndexRows[i];

@@ -8,6 +8,7 @@ using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
+using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 using CovidDataLake.Storage.Utils;
 
@@ -28,8 +29,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _maxRowsPerFile = configuration.MaxRowsPerFile;
         }
 
-        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<string> values,
-            string valuesFileName
+        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
         )
         {
             var originalIndexValues = AsyncEnumerable.Empty<IndexValueModel>();
@@ -40,7 +40,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
             }
 
-            var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values, valuesFileName);
+            var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
 
             var rootIndexRows = new List<RootIndexRow>();
             var indexValueBatches = indexValues.Batch(_maxRowsPerFile);
@@ -65,7 +65,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
             IAsyncEnumerable<IndexValueModel> originalIndexValues,
-            IList<string> newValues, string valuesFileName)
+            IList<RawEntry> newValues)
         {
             await foreach (var indexValue in originalIndexValues)
             {
@@ -76,15 +76,15 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 }
 
                 var currentInputValue = newValues.First();
-                if (currentInputValue == indexValue.Value)
+                if (currentInputValue.Value == indexValue.Value)
                 {
-                    indexValue.Files.Add(valuesFileName);
+                    indexValue.Files.AddRange(currentInputValue.OriginFilenames);
                     newValues.RemoveAt(0);
                 }
 
-                if (string.Compare(currentInputValue, indexValue.Value, StringComparison.Ordinal) < 0)
+                if (string.Compare(currentInputValue.Value, indexValue.Value, StringComparison.Ordinal) < 0)
                 {
-                    var newIndexValue = new IndexValueModel(currentInputValue, new List<string> { valuesFileName });
+                    var newIndexValue = new IndexValueModel(currentInputValue.Value, currentInputValue.OriginFilenames);
                     newValues.RemoveAt(0);
                     yield return newIndexValue;
                 }
@@ -95,7 +95,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (!newValues.Any()) yield break;
             foreach (var currentValue in newValues)
             {
-                var newIndexValue = new IndexValueModel(currentValue, new List<string> { valuesFileName });
+                var newIndexValue = new IndexValueModel(currentValue.Value, currentValue.OriginFilenames);
                 yield return newIndexValue;
             }
         }

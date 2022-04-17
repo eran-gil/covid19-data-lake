@@ -26,11 +26,30 @@ namespace CovidDataLake.MetadataIndexer
             _bucketName = amazonConfig.BucketName;
         }
 
-        protected override async Task HandleMessage(string filename)
+        protected override async Task HandleMessages(IEnumerable<string> files)
         {
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
-            var allMetadata = _extractors.AsParallel().SelectMany(extractor => extractor.ExtractMetadata(downloadedFileName))
-                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            var allMetadata = new Dictionary<string, List<string>>();
+            foreach (var file in files)
+            {
+                var fileMetadata = await GetMetadataFromFile(file);
+                if (fileMetadata == null)
+                {
+                    continue;
+                }
+
+                foreach (var metadata in fileMetadata)
+                {
+                    if (allMetadata.ContainsKey(metadata.Key))
+                    {
+                        allMetadata[metadata.Key].Add(metadata.Value);
+                    }
+                    else
+                    {
+                        allMetadata[metadata.Key] = new List<string> { metadata.Value };
+                    }
+                }
+
+            }
             var tasks = new List<Task>();
             foreach (var metadata in allMetadata)
             {
@@ -40,7 +59,15 @@ namespace CovidDataLake.MetadataIndexer
             await Task.WhenAll(tasks);
         }
 
-        private static Task IndexMetadataAsTask(IMetadataIndexer indexer, KeyValuePair<string, string> metadata)
+        private async Task<Dictionary<string, string>> GetMetadataFromFile(string filename)
+        {
+            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
+            var allMetadata = _extractors.AsParallel().SelectMany(extractor => extractor.ExtractMetadata(downloadedFileName))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            return allMetadata;
+        }
+
+        private static Task IndexMetadataAsTask(IMetadataIndexer indexer, KeyValuePair<string, List<string>> metadata)
         {
             return Task.Run(() => indexer.IndexMetadata(metadata));
         }

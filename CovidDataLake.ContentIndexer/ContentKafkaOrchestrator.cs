@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.ContentIndexer.Extraction;
+using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
@@ -27,15 +28,27 @@ namespace CovidDataLake.ContentIndexer
             _bucketName = amazonConfig.BucketName;
         }
 
-        protected override async Task HandleMessage(string filename)
+        protected override async Task HandleMessages(IEnumerable<string> files)
+        {
+            var tableWrappers = new List<IFileTableWrapper>();
+            foreach (var filename in files)
+            {
+                var tableWrapper = await GetTableWrapperForFile(filename);
+                tableWrappers.Add(tableWrapper);
+            }
+
+            await _contentIndexer.IndexTableAsync(tableWrappers);
+        }
+
+        private async Task<IFileTableWrapper> GetTableWrapperForFile(string filename)
         {
             var fileType = filename.GetExtensionFromPath();
-            var tableWrapperFactory = _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
+            var tableWrapperFactory =
+                _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
             //todo: add handling of no available
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName);
-            await _contentIndexer.IndexTableAsync(tableWrapper, filename);
-
+            return tableWrapper;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
@@ -37,9 +38,12 @@ namespace CovidDataLake.MetadataIndexer.Indexing
             return outputFileName;
         }
 
-        protected override void UpdateIndexObjectWithMetadata(HyperLogLog indexObject, string metadataValue)
+        protected override void UpdateIndexObjectWithMetadata(HyperLogLog indexObject, List<string> metadataValues)
         {
-            indexObject.Add(metadataValue);
+            foreach (var metadataValue in metadataValues)
+            {
+                indexObject.Add(metadataValue);
+            }
         }
     }
 }

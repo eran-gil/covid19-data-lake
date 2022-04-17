@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CovidDataLake.ContentIndexer.Extraction.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -24,7 +25,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
 
         }
         public string Filename { get; set; }
-        public async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>>> GetColumns()
+        public async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>> GetColumns()
         {
             using var reader = CreateCsvReader(Filename);
             var canRead = await reader.ReadAsync();
@@ -40,7 +41,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
             return reader.HeaderRecord.ToDictionary(column => column, GetColumnValues);
         }
 
-        private async IAsyncEnumerable<string> GetColumnValues(string columnName)
+        private async IAsyncEnumerable<RawEntry> GetColumnValues(string columnName)
         {
             using var reader = CreateCsvReader(Filename);
             var records = reader.GetRecordsAsync<dynamic>();
@@ -49,7 +50,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
                 var recordDictionary = record as IDictionary<string, object>;
                 var propValue = recordDictionary?[columnName];
                 if (propValue != null)
-                    yield return propValue.ToString();
+                    yield return new RawEntry(Filename, propValue.ToString());
             }
         }
 
@@ -60,9 +61,9 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
             return csvReader;
         }
 
-        private IEnumerable<KeyValuePair<string, IAsyncEnumerable<string>>> GetDefaultValue()
+        private static IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetDefaultValue()
         {
-            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<string>>>();
+            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
         }
 
     }

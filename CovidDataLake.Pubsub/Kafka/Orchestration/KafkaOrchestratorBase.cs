@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using CovidDataLake.Pubsub.Kafka.Consumer;
@@ -21,12 +22,12 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
         {
             while (true)
             {
-                await _consumer.Consume(HandleMessage, _cancellationTokenSource.Token);
+                await _consumer.Consume(HandleMessages, _cancellationTokenSource.Token);
             }
             // ReSharper disable once FunctionNeverReturns
         }
 
-        protected abstract Task HandleMessage(string filename);
+        protected abstract Task HandleMessages(IEnumerable<string> files);
 
         public void Dispose()
         {
