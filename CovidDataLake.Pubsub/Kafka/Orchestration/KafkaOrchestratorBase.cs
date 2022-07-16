@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using CovidDataLake.Pubsub.Kafka.Consumer;
+using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 
 namespace CovidDataLake.Pubsub.Kafka.Orchestration
 {
@@ -11,19 +13,21 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
 
         private readonly IConsumer _consumer;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly TimeSpan _consumptionInterval;
 
-        public KafkaOrchestratorBase(IConsumerFactory consumerFactory)
+        public KafkaOrchestratorBase(IConsumerFactory consumerFactory, BatchOrchestratorConfiguration batchConfiguration)
         {
             _consumer = consumerFactory.CreateConsumer(Dns.GetHostName());
             _cancellationTokenSource = new CancellationTokenSource();
+            _consumptionInterval = TimeSpan.FromSeconds(batchConfiguration.BatchIntervalInSeconds);
         }
 
         public async Task StartOrchestration()
         {
-            //todo: make work in batches with configurable time
             while (true)
             {
                 await _consumer.Consume(HandleMessages, _cancellationTokenSource.Token);
+                Thread.Sleep(_consumptionInterval);
             }
             // ReSharper disable once FunctionNeverReturns
         }

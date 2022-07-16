@@ -9,6 +9,7 @@ using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
+using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 using CovidDataLake.Storage.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,7 @@ namespace CovidDataLake.ContentIndexer
 
         public ContentKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IFileTableWrapperFactory> tableWrapperFactories,
             IContentIndexer contentIndexer, IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration amazonConfig,
-            ILogger<ContentKafkaOrchestrator> logger) : base(consumerFactory)
+            ILogger<ContentKafkaOrchestrator> logger, BatchOrchestratorConfiguration batchConfiguration) : base(consumerFactory, batchConfiguration)
         {
             _tableWrapperFactories = tableWrapperFactories;
             _contentIndexer = contentIndexer;

@@ -8,6 +8,7 @@ using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
+using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.MetadataIndexer
@@ -22,8 +23,8 @@ namespace CovidDataLake.MetadataIndexer
 
         public MetadataKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IMetadataExtractor> extractors,
             IEnumerable<IMetadataIndexer> indexers, IAmazonAdapter amazonAdapter,
-            BasicAmazonIndexFileConfiguration amazonConfig, ILogger<MetadataKafkaOrchestrator> logger)
-            : base(consumerFactory)
+            BasicAmazonIndexFileConfiguration amazonConfig, ILogger<MetadataKafkaOrchestrator> logger,
+            BatchOrchestratorConfiguration batchConfiguration) : base(consumerFactory, batchConfiguration)
         {
             _extractors = extractors;
             _indexers = indexers;

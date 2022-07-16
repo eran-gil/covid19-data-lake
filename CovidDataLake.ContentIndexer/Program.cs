@@ -11,6 +11,7 @@ using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
+using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,6 +31,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<NeedleInHaystackIndexConfiguration>(configuration, "NeedleInHaystackIndex");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
+            serviceCollection.BindConfigurationToContainer<BatchOrchestratorConfiguration>(configuration, "BatchConfig");
             var redisConnectionString = configuration.GetValue<string>("Redis");
             var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
             serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);

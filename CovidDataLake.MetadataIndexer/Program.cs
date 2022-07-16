@@ -13,6 +13,7 @@ using CovidDataLake.MetadataIndexer.Indexing.Configuration;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
+using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,7 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexConfig");
+            serviceCollection.BindConfigurationToContainer<BatchOrchestratorConfiguration>(configuration, "BatchConfig");
             serviceCollection.AddSingleton<IMetadataExtractor, TikaMetadataExtractor>();
             serviceCollection.AddSingleton<IMetadataIndexer, HyperLogLogMetadataIndexer>();
             serviceCollection.AddSingleton<IMetadataIndexer, CountMinSketchMetadataIndexer>();
