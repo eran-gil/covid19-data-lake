@@ -24,8 +24,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<RawEntry> values, string indexFilename)
         {
-            //todo: test after refactor
-            //todo: test update integrity
             var downloadedFilename =
                 CreateNewColumnIndexFileName();
             if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)

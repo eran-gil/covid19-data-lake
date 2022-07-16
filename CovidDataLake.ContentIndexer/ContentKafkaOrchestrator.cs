@@ -36,19 +36,19 @@ namespace CovidDataLake.ContentIndexer
 
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
-            var batchGuid = new Guid();
-            var filesList = files.ToList();
-            var filesCount = filesList.Count;
-            _logger.LogInformation($"Batch {batchGuid} received with {filesCount} files");
+            var batchGuid = Guid.NewGuid();
+            var filesCount = 0;
+            _logger.LogInformation($"Batch {batchGuid} started");
             var tableWrappers = new List<IFileTableWrapper>();
-            foreach (var filename in filesList)
+            foreach (var filename in files)
             {
                 var tableWrapper = await GetTableWrapperForFile(filename);
                 tableWrappers.Add(tableWrapper);
+                filesCount++;
             }
 
             await _contentIndexer.IndexTableAsync(tableWrappers);
-            _logger.LogInformation($"Batch {batchGuid} finished");
+            _logger.LogInformation($"Batch {batchGuid} finished with {filesCount} files");
 
         }
 

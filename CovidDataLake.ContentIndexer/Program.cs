@@ -50,6 +50,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddLogging(builder =>
             {
+                builder.ClearProviders();
                 builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });

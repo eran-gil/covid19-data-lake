@@ -41,7 +41,7 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
                 ConsumeResult<string, string> consumeResult;
                 try
                 {
-                    consumeResult = _kafkaConsumer.Consume();
+                    consumeResult = _kafkaConsumer.Consume(1000);
                     
                 }
                 catch (Exception e)

@@ -35,12 +35,11 @@ namespace CovidDataLake.MetadataIndexer
 
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
-            var batchGuid = new Guid();
-            var filesList = files.ToList();
-            var filesCount = filesList.Count; 
-            _logger.LogInformation($"Batch {batchGuid} received with {filesCount} files");
+            var batchGuid = Guid.NewGuid();
+            var filesCount = 0; 
+            _logger.LogInformation($"Batch {batchGuid} started");
             var allMetadata = new Dictionary<string, List<string>>();
-            foreach (var file in filesList)
+            foreach (var file in files)
             {
                 var fileMetadata = await GetMetadataFromFile(file);
                 if (fileMetadata == null)
@@ -59,7 +58,7 @@ namespace CovidDataLake.MetadataIndexer
                         allMetadata[metadata.Key] = new List<string> { metadata.Value };
                     }
                 }
-
+                filesCount++;
             }
             var tasks = new List<Task>();
             foreach (var metadata in allMetadata)
@@ -68,7 +67,7 @@ namespace CovidDataLake.MetadataIndexer
             }
 
             await Task.WhenAll(tasks);
-            _logger.LogInformation($"Batch {batchGuid} finished");
+            _logger.LogInformation($"Batch {batchGuid} finished with {filesCount} files");
         }
 
         private async Task<Dictionary<string, string>> GetMetadataFromFile(string filename)

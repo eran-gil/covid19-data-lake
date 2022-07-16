@@ -38,6 +38,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 }
 
             }
+            if (!allColumns.Any())
+            {
+                return;
+            }
             var valuesToFilesMapping = allColumns.ToDictionary(column => column.Key, GetFileMappingForColumn);
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
             foreach (var columnMapping in valuesToFilesMapping)

@@ -36,8 +36,8 @@ namespace CovidDataLake.WebApi.Controllers
         public async Task<ActionResult<IEnumerable<QueryResult>>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
              [BindRequired][FromBody] object queryBody)
         {
-            var querySession = new Guid();
-            _logger.LogInformation($"{queryType} query {querySession} has begun");
+            var querySession = Guid.NewGuid();
+            _logger.LogInformation($"Query {querySession} of type {queryType} has begun");
             var relevantQueryExecutor = _queryExecutors.FirstOrDefault(executor => executor.CanHandle(queryType));
             if (relevantQueryExecutor == default(IQueryExecutor))
             {
@@ -66,7 +66,7 @@ namespace CovidDataLake.WebApi.Controllers
             {
                 result = StatusCode(500, "An error occurred while trying to perform your query");
             }
-            _logger.LogInformation($"Query {querySession} has finished");
+            _logger.LogInformation($"Query {querySession} of type {queryType} has finished");
             return result;
         }
     }

@@ -48,13 +48,14 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddSingleton<IOrchestrator, MetadataKafkaOrchestrator>();
-            var serviceProvider = serviceCollection.BuildServiceProvider();
-            var orchestrator = serviceProvider.GetService<IOrchestrator>();
             serviceCollection.AddLogging(builder =>
             {
+                builder.ClearProviders();
                 builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+            var orchestrator = serviceProvider.GetService<IOrchestrator>();
             await orchestrator.StartOrchestration();
         }
 

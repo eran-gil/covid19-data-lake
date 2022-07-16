@@ -62,6 +62,7 @@ namespace CovidDataLake.WebApi
             services.AddSwaggerGen();
             services.AddLogging(builder =>
             {
+                builder.ClearProviders();
                 builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });
