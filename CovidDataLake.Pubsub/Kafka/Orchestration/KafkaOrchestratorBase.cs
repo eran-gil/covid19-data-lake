@@ -20,6 +20,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
 
         public async Task StartOrchestration()
         {
+            //todo: make work in batches with configurable time
             while (true)
             {
                 await _consumer.Consume(HandleMessages, _cancellationTokenSource.Token);

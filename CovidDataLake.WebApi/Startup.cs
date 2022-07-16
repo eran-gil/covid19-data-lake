@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace CovidDataLake.WebApi
@@ -59,6 +60,11 @@ namespace CovidDataLake.WebApi
             services.AddSingleton<IFileTypeValidator, ClosedListFileTypeValidator>();
             services.AddSingleton<IProducerFactory, KafkaProducerFactory>();
             services.AddSwaggerGen();
+            services.AddLogging(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddProvider(new Log4NetProvider("log4net.config"));
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

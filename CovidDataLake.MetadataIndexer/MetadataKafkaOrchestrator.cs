@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
@@ -7,6 +8,7 @@ using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
+using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.MetadataIndexer
 {
@@ -15,21 +17,29 @@ namespace CovidDataLake.MetadataIndexer
         private readonly IEnumerable<IMetadataExtractor> _extractors;
         private readonly IEnumerable<IMetadataIndexer> _indexers;
         private readonly IAmazonAdapter _amazonAdapter;
+        private readonly ILogger<MetadataKafkaOrchestrator> _logger;
         private readonly string _bucketName;
 
-        public MetadataKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IMetadataExtractor> extractors, IEnumerable<IMetadataIndexer> indexers, IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration amazonConfig)
+        public MetadataKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IMetadataExtractor> extractors,
+            IEnumerable<IMetadataIndexer> indexers, IAmazonAdapter amazonAdapter,
+            BasicAmazonIndexFileConfiguration amazonConfig, ILogger<MetadataKafkaOrchestrator> logger)
             : base(consumerFactory)
         {
             _extractors = extractors;
             _indexers = indexers;
             _amazonAdapter = amazonAdapter;
+            _logger = logger;
             _bucketName = amazonConfig.BucketName;
         }
 
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
+            var batchGuid = new Guid();
+            var filesList = files.ToList();
+            var filesCount = filesList.Count; 
+            _logger.LogInformation($"Batch {batchGuid} received with {filesCount} files");
             var allMetadata = new Dictionary<string, List<string>>();
-            foreach (var file in files)
+            foreach (var file in filesList)
             {
                 var fileMetadata = await GetMetadataFromFile(file);
                 if (fileMetadata == null)
@@ -57,6 +67,7 @@ namespace CovidDataLake.MetadataIndexer
             }
 
             await Task.WhenAll(tasks);
+            _logger.LogInformation($"Batch {batchGuid} finished");
         }
 
         private async Task<Dictionary<string, string>> GetMetadataFromFile(string filename)

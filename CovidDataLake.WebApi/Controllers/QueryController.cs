@@ -8,6 +8,7 @@ using CovidDataLake.Queries.Executors;
 using CovidDataLake.Queries.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.WebApi.Controllers
 {
@@ -17,10 +18,12 @@ namespace CovidDataLake.WebApi.Controllers
     public class QueryController : Controller
     {
         private readonly IEnumerable<IQueryExecutor> _queryExecutors;
+        private readonly ILogger<QueryController> _logger;
 
-        public QueryController(IEnumerable<IQueryExecutor> queryExecutors)
+        public QueryController(IEnumerable<IQueryExecutor> queryExecutors, ILogger<QueryController> logger)
         {
             _queryExecutors = queryExecutors;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -33,6 +36,8 @@ namespace CovidDataLake.WebApi.Controllers
         public async Task<ActionResult<IEnumerable<QueryResult>>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
              [BindRequired][FromBody] object queryBody)
         {
+            var querySession = new Guid();
+            _logger.LogInformation($"{queryType} query {querySession} has begun");
             var relevantQueryExecutor = _queryExecutors.FirstOrDefault(executor => executor.CanHandle(queryType));
             if (relevantQueryExecutor == default(IQueryExecutor))
             {
@@ -46,21 +51,23 @@ namespace CovidDataLake.WebApi.Controllers
                 body = await reader.ReadToEndAsync();
             }
 
+            ObjectResult result;
             try
             {
                 var results = await relevantQueryExecutor.ExecuteFromString(body);
-                return Ok(results);
+                result = Ok(results);
             }
 
             catch (InvalidQueryFormatException)
             {
-                return BadRequest($"Invalid query format for query type {queryType}");
+                result = BadRequest($"Invalid query format for query type {queryType}");
             }
             catch (Exception)
             {
-                return StatusCode(500, "An error occurred while trying to perform your query");
-
+                result = StatusCode(500, "An error occurred while trying to perform your query");
             }
+            _logger.LogInformation($"Query {querySession} has finished");
+            return result;
         }
     }
 }

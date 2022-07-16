@@ -15,6 +15,7 @@ using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace CovidDataLake.MetadataIndexer
@@ -45,9 +46,13 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddSingleton<IOrchestrator, MetadataKafkaOrchestrator>();
-            /*serviceCollection.AddLogging();*/
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
+            serviceCollection.AddLogging(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddProvider(new Log4NetProvider("log4net.config"));
+            });
             await orchestrator.StartOrchestration();
         }
 

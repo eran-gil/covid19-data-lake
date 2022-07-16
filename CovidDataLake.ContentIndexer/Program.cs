@@ -13,6 +13,7 @@ using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace CovidDataLake.ContentIndexer
@@ -23,7 +24,6 @@ namespace CovidDataLake.ContentIndexer
         {
             var configuration = BuildConfiguration(args);
             IServiceCollection serviceCollection = new ServiceCollection();
-            serviceCollection.AddLogging();
             serviceCollection.BindConfigurationToContainer<KafkaConsumerConfiguration>(configuration, "Kafka");
             serviceCollection.BindConfigurationToContainer<RedisIndexCacheConfiguration>(configuration, "RedisIndexCache");
             serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
@@ -46,6 +46,11 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
+            serviceCollection.AddLogging(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddProvider(new Log4NetProvider("log4net.config"));
+            });
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
