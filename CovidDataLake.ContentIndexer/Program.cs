@@ -7,6 +7,8 @@ using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extraction;
+using CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv;
+using CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
@@ -41,6 +43,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<IOrchestrator, ContentKafkaOrchestrator>();
             serviceCollection.AddSingleton<IIndexFileWriter, AmazonIndexFileWriter>();
             serviceCollection.AddSingleton<IFileTableWrapperFactory, CsvFileTableWrapperFactory>();
+            serviceCollection.AddSingleton<IFileTableWrapperFactory, JsonFileTableWrapperFactory>();
             serviceCollection.AddSingleton<IContentIndexer, NeedleInHaystackContentIndexer>();
             serviceCollection.AddSingleton<IIndexFileAccess, NeedleInHaystackIndexFileAccess>();
             serviceCollection.AddSingleton<IIndexFileWriter, AmazonIndexFileWriter>();

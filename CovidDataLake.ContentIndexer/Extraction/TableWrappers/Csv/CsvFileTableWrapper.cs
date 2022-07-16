@@ -8,7 +8,7 @@ using CovidDataLake.ContentIndexer.Extraction.Models;
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
+namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
     class CsvFileTableWrapper : IFileTableWrapper
     {

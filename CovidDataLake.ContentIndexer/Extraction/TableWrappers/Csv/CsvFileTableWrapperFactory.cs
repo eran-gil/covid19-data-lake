@@ -1,6 +1,4 @@
-﻿using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
-
-namespace CovidDataLake.ContentIndexer.Extraction
+﻿namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
     class CsvFileTableWrapperFactory : IFileTableWrapperFactory
     {
