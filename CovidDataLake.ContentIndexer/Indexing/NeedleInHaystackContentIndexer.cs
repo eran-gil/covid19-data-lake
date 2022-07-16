@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction.Models;
@@ -55,9 +56,17 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
         {
-            var columns = await tableWrapper.GetColumns();
+            try
+            {
+                var columns = await tableWrapper.GetColumns();
+                return columns;
+            }
+            catch (Exception)
+            {
+                return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
+            }
 
-            return columns;
+
         }
 
         private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(KeyValuePair<string, IAsyncEnumerable<KeyValuePair<RawEntry, string>>> columnMapping)
