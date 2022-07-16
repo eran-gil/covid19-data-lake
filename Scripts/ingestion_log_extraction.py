@@ -10,7 +10,7 @@ def read_log_line(line: str):
     log_date: datetime = dateparser.parse(log_object["date"])
     log_message = log_object.get("message")
     log_props = log_object.get("properties", {})
-    if log_message == "ingestion-started":
+    if log_message == "ingestion-start":
         ingestion_id = log_props["IngestionId"]
         open_ingestions[ingestion_id] = log_date
     elif log_message == "ingestion-end":

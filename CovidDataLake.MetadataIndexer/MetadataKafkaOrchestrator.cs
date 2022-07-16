@@ -40,7 +40,7 @@ namespace CovidDataLake.MetadataIndexer
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
             using var scope = _logger.BeginScope(loggingProperties);
-            _logger.LogInformation("ingestion-started");
+            _logger.LogInformation("ingestion-start");
             var allMetadata = new Dictionary<string, List<string>>();
             foreach (var file in files)
             {

@@ -40,7 +40,7 @@ namespace CovidDataLake.WebApi.Controllers
             var loggingProperties =
                 new Dictionary<string, object> { ["SessionId"] = querySession, ["QueryType"] = queryType };
             using var scope = _logger.BeginScope(loggingProperties);
-            _logger.LogInformation($"query-begin");
+            _logger.LogInformation($"query-start");
             var relevantQueryExecutor = _queryExecutors.FirstOrDefault(executor => executor.CanHandle(queryType));
             if (relevantQueryExecutor == default(IQueryExecutor))
             {

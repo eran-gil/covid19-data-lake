@@ -41,7 +41,7 @@ namespace CovidDataLake.ContentIndexer
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Content" };
             using var scope = _logger.BeginScope(loggingProperties);
-            _logger.LogInformation("ingestion-started");
+            _logger.LogInformation("ingestion-start");
             var tableWrappers = new List<IFileTableWrapper>();
             foreach (var filename in files)
             {
