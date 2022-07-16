@@ -46,7 +46,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexValueBatches = indexValues.Batch(_maxRowsPerFile);
             await foreach (var batch in indexValueBatches)
             {
-                var outputFilename = Guid.NewGuid().ToString();
+                var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
                 var rootIndexRow = await MergeIndexValuesToFile(batch, outputFilename);
                 rootIndexRows.Add(rootIndexRow);
             }

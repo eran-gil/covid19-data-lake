@@ -38,7 +38,7 @@ namespace CovidDataLake.Storage.Write
         private static string GetTempFilePathFromOriginalFilename(string filepath)
         {
             var filename = Path.GetFileName(filepath);
-            var tempFilePath = CommonKeys.TEMP_FOLDER_NAME + "\\" + filename;
+            var tempFilePath = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, filename);
             return tempFilePath;
         }
 
