@@ -38,7 +38,10 @@ namespace CovidDataLake.ContentIndexer
         {
             var batchGuid = Guid.NewGuid();
             var filesCount = 0;
-            _logger.LogInformation($"Batch {batchGuid} started");
+            var loggingProperties =
+                new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Content" };
+            using var scope = _logger.BeginScope(loggingProperties);
+            _logger.LogInformation("ingestion-started");
             var tableWrappers = new List<IFileTableWrapper>();
             foreach (var filename in files)
             {
@@ -48,7 +51,10 @@ namespace CovidDataLake.ContentIndexer
             }
 
             await _contentIndexer.IndexTableAsync(tableWrappers);
-            _logger.LogInformation($"Batch {batchGuid} finished with {filesCount} files");
+            var filesLoggingProperties =
+                new Dictionary<string, object> { ["FilesCount"] = filesCount };
+            using var filesScope = _logger.BeginScope(filesLoggingProperties);
+            _logger.LogInformation("ingestion-end");
 
         }
 
