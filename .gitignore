@@ -354,3 +354,11 @@ CovidDataLake.ContentIndexer/Properties/launchSettings.json
 CovidDataLake.WebApi/Properties/launchSettings.json
 
 CovidDataLake.WebApi/__TEMP__/
+
+Scripts/.vscode/
+
+Scripts/ingestions.csv
+
+Scripts/log.json
+
+Scripts/queries.csv
