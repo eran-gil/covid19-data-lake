@@ -55,9 +55,11 @@ namespace CovidDataLake.WebApi.Controllers
             }
 
             ObjectResult result;
+            var resultCount = 0;
             try
             {
-                var results = await relevantQueryExecutor.ExecuteFromString(body);
+                var results = (await relevantQueryExecutor.ExecuteFromString(body)).ToList();
+                resultCount = results.Count;
                 result = Ok(results);
             }
 
@@ -69,6 +71,9 @@ namespace CovidDataLake.WebApi.Controllers
             {
                 result = StatusCode(500, "An error occurred while trying to perform your query");
             }
+            var resultLoggingProperties =
+                new Dictionary<string, object> { ["ResultCount"] = resultCount};
+            using var resultScope = _logger.BeginScope(resultLoggingProperties);
             _logger.LogInformation($"query-end");
             return result;
         }
