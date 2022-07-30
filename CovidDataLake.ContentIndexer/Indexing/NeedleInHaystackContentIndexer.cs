@@ -43,7 +43,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 return;
             }
-            var valuesToFilesMapping = allColumns.ToDictionary(column => column.Key, GetFileMappingForColumn);
+            var valuesToFilesMapping = allColumns.AsParallel().ToDictionary(column => column.Key, GetFileMappingForColumn);
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
             foreach (var columnMapping in valuesToFilesMapping)
             {
@@ -105,10 +105,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private IAsyncEnumerable<KeyValuePair<RawEntry, string>> GetFileMappingForColumn(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
-            var (key, value) = column;
-            var mapping = value.Select(async val =>
-                    new KeyValuePair<RawEntry, string>(val,
-                        await _rootIndexAccess.GetFileNameForColumnAndValue(key, val.Value)))
+            var (columnName, columnValues) = column;
+            var mapping = columnValues.Select(async entry =>
+                    new KeyValuePair<RawEntry, string>(entry,
+                        await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value)))
                 .Select(t => t.Result);
             return mapping;
         }
