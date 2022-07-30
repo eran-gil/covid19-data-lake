@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Confluent.Kafka;
@@ -30,32 +31,38 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
 
         public async Task Consume(Func<IEnumerable<string>, Task> handleMessages, CancellationToken cancellationToken)
         {
-            var batch = ConsumeBatch();
+            var consumeResults = ConsumeBatch();
+            var batch = consumeResults.Select(result => result.Message.Value);
             await handleMessages(batch);
+            foreach (var result in consumeResults)
+            {
+                _kafkaConsumer.Commit(result);
+            }
         }
 
-        protected IEnumerable<string> ConsumeBatch()
+        protected IList<ConsumeResult<string, string>> ConsumeBatch()
         {
+            var consumeResults = new List<ConsumeResult<string, string>>();
             while (true)
             {
                 ConsumeResult<string, string> consumeResult;
                 try
                 {
                     consumeResult = _kafkaConsumer.Consume(1000);
-                    
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    yield break;
+                    break;
                 }
                 if (consumeResult == null)
                 {
-                    yield break;
+                    break;
                 }
-                yield return consumeResult.Message.Value;
-                _kafkaConsumer.Commit(consumeResult);
+                consumeResults.Add(consumeResult);
             }
+
+            return consumeResults;
         }
 
         public void Dispose()
