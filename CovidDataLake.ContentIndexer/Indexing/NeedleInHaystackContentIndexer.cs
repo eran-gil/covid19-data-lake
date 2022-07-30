@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -69,12 +70,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         }
 
-        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(KeyValuePair<string, IAsyncEnumerable<KeyValuePair<RawEntry, string>>> columnMapping)
+        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(KeyValuePair<string, IDictionary<string, List<RawEntry>>> columnMapping)
         {
-            var (columnName, valuesMapping) = columnMapping;
-            var fileGroups = valuesMapping.GroupBy(kvp => kvp.Value);
+            var (columnName, indexFilesMapping) = columnMapping;
             
-            var updateIndexTasks = await fileGroups.Select(WriteValuesGroupToFile).ToArrayAsync();
+            var updateIndexTasks = indexFilesMapping.AsParallel().Select(WriteValuesGroupToFile).ToArray();
             await Task.WhenAll(updateIndexTasks);
             foreach (var updateIndexTask in updateIndexTasks)
             {
@@ -89,11 +89,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return columnUpdate;
         }
 
-        private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(IAsyncGrouping<string, KeyValuePair<RawEntry, string>> fileGroup)
+        private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup)
         {
-            var values = await fileGroup.OrderBy(kvp=> kvp.Key.Value).Select(kvp => kvp.Key).ToListAsync();
-            values = values.GroupBy(entry => entry.Value).OrderBy(g => g.Key).Select(valuesGroup => valuesGroup.Aggregate(MergeEntries)).ToList();
-            var indexFileName = fileGroup.Key;
+            var (indexFileName, values) = fileGroup;
+            var orderedValues = fileGroup.Value.OrderBy(kvp=> kvp.Value).ToList();
+            values = orderedValues.GroupBy(entry => entry.Value).OrderBy(g => g.Key).Select(valuesGroup => valuesGroup.Aggregate(MergeEntries)).ToList();
             return await _indexFileWriter.UpdateIndexFileWithValues(values, indexFileName);
         }
 
@@ -103,13 +103,20 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return v1;
         }
 
-        private IAsyncEnumerable<KeyValuePair<RawEntry, string>> GetFileMappingForColumn(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
+        private IDictionary<string, List<RawEntry>> GetFileMappingForColumn(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
-            var mapping = columnValues.Select(async entry =>
-                    new KeyValuePair<RawEntry, string>(entry,
-                        await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value)))
-                .Select(t => t.Result);
+            var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
+            var tasks = columnValues.ForEachAsync(async entry =>
+            {
+                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
+                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (key, value) =>
+                {
+                    value.Add(entry);
+                    return value;
+                });
+            });
+            Task.WaitAll(tasks);
             return mapping;
         }
     }

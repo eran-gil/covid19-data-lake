@@ -28,7 +28,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             {
                 using var fileStream = File.OpenRead(Filename);
                 var reader = CreateCsvReader(fileStream);
-                var columnNames = reader.ColumnNames.ToList();
+                var columnNames = await reader.ReadHeadersAsync();
                 for(int i = 0; i < columnNames.Count; i++)
                 {
                     columnLocations[columnNames[i]] = i; 
@@ -45,24 +45,23 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         private async IAsyncEnumerable<RawEntry> GetColumnValues(int columnLocation)
         {
             var reader = CreateCsvReader(Filename);
-            var records = reader.Rows;
-            foreach (var record in records)
+            var columnValues = reader.ReadColumn(columnLocation);
+            await foreach (var value in columnValues)
             {
-                var columnValue = record.Values.ElementAtOrDefault(columnLocation);
-                if (columnValue != null)
-                    yield return new RawEntry(Filename, columnValue);
+                if (value != null)
+                    yield return new RawEntry(Filename, value);
             }
         }
 
-        private DataTable CreateCsvReader(string filename)
+        private AsyncCsvReader CreateCsvReader(string filename)
         {
             var stream = File.OpenRead(filename);
             return CreateCsvReader(stream);
         }
 
-        private DataTable CreateCsvReader(Stream stream)
+        private AsyncCsvReader CreateCsvReader(Stream stream)
         {
-            var csvReader = DataTable.New.ReadLazy(stream);
+            var csvReader = new AsyncCsvReader(stream);
             return csvReader;
         }
 
