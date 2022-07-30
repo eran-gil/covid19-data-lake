@@ -56,6 +56,16 @@ namespace CovidDataLake.WebApi.Controllers
             return StatusCode(500, "Failed to send the file to kafka, the file was deleted from the data lake");
         }
 
+        [HttpPost]
+        [Route("CloudFile")]
+        public async Task<ActionResult> CloudFile([BindRequired][FromQuery(Name = "cloudPath")] string cloudPath)
+        {
+            var result = await _messageProducer.SendMessage(cloudPath);
+            if (result) return Ok();
+
+            return StatusCode(500, "Failed to send the file to kafka, the file was deleted from the data lake");
+        }
+
         protected override void Dispose(bool disposing)
         {
             _messageProducer.Dispose();
