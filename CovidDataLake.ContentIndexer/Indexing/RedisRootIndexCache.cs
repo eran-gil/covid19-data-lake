@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly IConnectionMultiplexer _connection;
         private readonly ILock _lockMechanism;
         private readonly TimeSpan _lockTimeSpan;
+        private readonly ConcurrentDictionary<string, string> _columnKeys;
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
         private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
@@ -24,6 +26,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _connection = connection;
             _lockMechanism = lockMechanism;
             _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockDurationInSeconds);
+            _columnKeys = new ConcurrentDictionary<string, string>();
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
@@ -31,7 +34,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var db = _connection.GetDatabase();
             foreach (var columnUpdate in columnMappings)
             {
-                var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
+                var redisLockKey = _columnKeys.GetOrAdd(columnUpdate.ColumnName, GetRedisLockKeyForColumn(columnUpdate.ColumnName));
                 await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
 
                 async void UpdateRowInCache(RootIndexRow row) => await UpdateRowCacheInRedis(db, row);
@@ -63,7 +66,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var db = _connection.GetDatabase();
             var redisSetKey = GetRedisKeyForColumn(column);
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
-            var redisLockKey = GetRedisLockKeyForColumn(column);
+            var redisLockKey = _columnKeys.GetOrAdd(column, GetRedisLockKeyForColumn(column));
             await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
             var indexFileMaxValue = (await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1)).FirstOrDefault();
             if (indexFileMaxValue.IsNull) return null;

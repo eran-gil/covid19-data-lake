@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using StackExchange.Redis;
@@ -19,14 +19,39 @@ namespace CovidDataLake.Common.Locking
         public async Task<bool> TakeLockAsync(string lockName, TimeSpan lockExpiration)
         {
             var token = GetToken();
-            var lockResult = await _database.LockTakeAsync(lockName, token, lockExpiration);
+            var lockResult = false;
+            while (!lockResult)
+            {
+                try
+                {
+                    lockResult = await _database.LockTakeAsync(lockName, token, lockExpiration);
+                }
+                catch
+                {
+                    Thread.Sleep(10);
+                }
+                if(!lockResult)
+                    Thread.Sleep(10);
+            }
             return lockResult;
         }
 
         public async Task<bool> ReleaseLockAsync(string lockName)
         {
             var token = GetToken();
-            var lockResult = await _database.LockReleaseAsync(lockName, token);
+
+            var lockResult = false;
+            while (!lockResult)
+            {
+                try
+                {
+                    lockResult = await _database.LockReleaseAsync(lockName, token);
+                }
+                catch
+                {
+
+                }
+            }
             return lockResult;
         }
 
