@@ -28,7 +28,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         public async Task IndexMetadata(KeyValuePair<string, List<string>> data)
         {
             var indexFileName = GetIndexFilePath(data.Key);
-            await _fileLock.TakeLockAsync(indexFileName, _lockTimeSpan);
+            _fileLock.TakeLock(indexFileName, _lockTimeSpan);
 
             string downloadedIndexFile;
             try
@@ -44,7 +44,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
             UpdateIndexObjectWithMetadata(indexObject, data.Value);
             var outputFileName = WriteIndexObjectToFile(indexObject);
             await _amazonAdapter.UploadObjectAsync(_bucketName, indexFileName, outputFileName);
-            await _fileLock.ReleaseLockAsync(indexFileName);
+            _fileLock.ReleaseLock(indexFileName);
         }
 
         protected abstract T GetIndexObjectFromFile(string indexFile);

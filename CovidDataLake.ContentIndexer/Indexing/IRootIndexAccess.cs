@@ -8,5 +8,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
     {
         Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings);
         Task<string> GetFileNameForColumnAndValue(string column, string val);
+        Task EnterBatch();
+        Task ExitBatch(bool shouldUpdate = false);
     }
 }

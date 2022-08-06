@@ -1,22 +1,19 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using StackExchange.Redis;
 
 namespace CovidDataLake.Common.Locking
 {
     public class RedisLock : ILock
     {
-        private readonly IConnectionMultiplexer _connection;
         private readonly IDatabase _database;
 
         public RedisLock(IConnectionMultiplexer connection)
         {
-            _connection = connection;
-            _database = _connection.GetDatabase();
+            _database = connection.GetDatabase();
         }
 
-        public async Task<bool> TakeLockAsync(string lockName, TimeSpan lockExpiration)
+        public void TakeLock(string lockName, TimeSpan lockExpiration)
         {
             var token = GetToken();
             var lockResult = false;
@@ -24,19 +21,18 @@ namespace CovidDataLake.Common.Locking
             {
                 try
                 {
-                    lockResult = await _database.LockTakeAsync(lockName, token, lockExpiration);
+                    lockResult = _database.LockTake(lockName, token, lockExpiration);
                 }
                 catch
                 {
-                    Thread.Sleep(10);
+                    // ignored
                 }
-                if(!lockResult)
+                if (!lockResult)
                     Thread.Sleep(10);
             }
-            return lockResult;
         }
 
-        public async Task<bool> ReleaseLockAsync(string lockName)
+        public void ReleaseLock(string lockName)
         {
             var token = GetToken();
 
@@ -45,14 +41,31 @@ namespace CovidDataLake.Common.Locking
             {
                 try
                 {
-                    lockResult = await _database.LockReleaseAsync(lockName, token);
+                    lockResult = _database.LockRelease(lockName, token);
                 }
                 catch
                 {
-
+                    // ignored
                 }
             }
-            return lockResult;
+        }
+
+        public void ExtendLock(string lockName, TimeSpan lockExpiration)
+        {
+            var token = GetToken();
+
+            var lockResult = false;
+            while (!lockResult)
+            {
+                try
+                {
+                    lockResult = _database.LockExtend(lockName, token, lockExpiration);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
 
         private string GetToken()

@@ -22,6 +22,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly string _bucketName;
         private readonly string _rootIndexName;
         private readonly TimeSpan _lockTimeSpan;
+        private string _rootIndexLocalFileName;
 
         public AmazonRootIndexFileAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism, AmazonRootIndexFileConfiguration configuration)
         {
@@ -31,40 +32,46 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockTimeSpanInSeconds);
             _bucketName = configuration.BucketName;
             _rootIndexName = $"{CommonKeys.INDEX_FOLDER_NAME}/{configuration.RootIndexName}";
+            _rootIndexLocalFileName = null;
+        }
+
+        public async Task EnterBatch()
+        {
+            _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            _rootIndexLocalFileName = await GetOrCreateRootIndexFile();
+        }
+
+        public async Task ExitBatch(bool shouldUpdate = false)
+        {
+            if (shouldUpdate)
+                await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, _rootIndexLocalFileName);
+            _rootIndexLocalFileName = string.Empty;
+            _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
-            await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFileName);
+            _lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
-            var outputFileName = downloadedFileName + "_new";
+            var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
             await WriteIndexRowsToFile(outputFileName, outputRows);
-            await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, outputFileName);
-            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
+            _rootIndexLocalFileName = outputFileName;
             await _cache.UpdateColumnRanges(columnMappings);
+            _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
         }
+
+        
 
         public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
+            _lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
 
-            await _lockMechanism.TakeLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
-            var downloadedFileName = "__NOT_EXISTING__";
-            try
-            {
-                downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
-            }
-            catch (ResourceNotFoundException)
-            {
-                await CreateRootIndexFile();
-            }
-            await _lockMechanism.ReleaseLockAsync(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
-
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(downloadedFileName);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
@@ -81,12 +88,28 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return relevantIndexRow.FileName;
         }
 
-        private async Task CreateRootIndexFile()
+        private async Task<string> GetOrCreateRootIndexFile()
+        {
+            string downloadedFileName;
+            try
+            {
+                downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
+            }
+            catch (ResourceNotFoundException)
+            {
+                downloadedFileName = await CreateRootIndexFile();
+            }
+
+            return downloadedFileName;
+        }
+
+        private async Task<string> CreateRootIndexFile()
         {
             var fileName = $"{CommonKeys.TEMP_FOLDER_NAME}/{Guid.NewGuid()}.txt";
             var file = FileCreator.CreateFileAndPath(fileName);
             file.Close();
             await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName);
+            return fileName;
         }
 
         private static bool ValidateRowWithRequest(string column, string val, RootIndexRow indexRow)
@@ -96,8 +119,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static async Task WriteIndexRowsToFile(string outputFileName, IAsyncEnumerable<RootIndexRow> outputRows)
         {
-            using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
-            using var outputStreamWriter = new StreamWriter(outputFile);
+            await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
+            await using var outputStreamWriter = new StreamWriter(outputFile);
             await foreach (var outputRow in outputRows)
             {
                 await outputStreamWriter.WriteObjectToLineAsync(outputRow);

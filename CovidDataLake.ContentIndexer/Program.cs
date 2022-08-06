@@ -58,6 +58,7 @@ namespace CovidDataLake.ContentIndexer
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });
 
+            serviceCollection.AddMemoryCache();
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
             await orchestrator.StartOrchestration();

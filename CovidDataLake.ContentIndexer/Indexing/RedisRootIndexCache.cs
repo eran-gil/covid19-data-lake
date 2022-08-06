@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 
 namespace CovidDataLake.ContentIndexer.Indexing
@@ -15,18 +15,19 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly IConnectionMultiplexer _connection;
         private readonly ILock _lockMechanism;
         private readonly TimeSpan _lockTimeSpan;
-        private readonly ConcurrentDictionary<string, string> _columnKeys;
+        private readonly IMemoryCache _emptyKeysCache;
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
         private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
         private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
 
-        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism, RedisIndexCacheConfiguration configuration)
+        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism,
+            RedisIndexCacheConfiguration configuration, IMemoryCache memoryCache)
         {
             _connection = connection;
             _lockMechanism = lockMechanism;
             _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockDurationInSeconds);
-            _columnKeys = new ConcurrentDictionary<string, string>();
+            _emptyKeysCache = memoryCache;
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
@@ -34,13 +35,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var db = _connection.GetDatabase();
             foreach (var columnUpdate in columnMappings)
             {
-                var redisLockKey = _columnKeys.GetOrAdd(columnUpdate.ColumnName, GetRedisLockKeyForColumn(columnUpdate.ColumnName));
-                await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
+                var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
+                _lockMechanism.TakeLock(redisLockKey, _lockTimeSpan);
 
                 async void UpdateRowInCache(RootIndexRow row) => await UpdateRowCacheInRedis(db, row);
 
                 columnUpdate.Rows.AsParallel().ForAll(UpdateRowInCache);
-                await _lockMechanism.ReleaseLockAsync(redisLockKey);
+                _lockMechanism.ReleaseLock(redisLockKey);
             }
         }
 
@@ -65,16 +66,48 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             var db = _connection.GetDatabase();
             var redisSetKey = GetRedisKeyForColumn(column);
+            if (_emptyKeysCache.TryGetValue(redisSetKey, out _))
+            {
+                return null;
+            }
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
-            var redisLockKey = _columnKeys.GetOrAdd(column, GetRedisLockKeyForColumn(column));
-            await _lockMechanism.TakeLockAsync(redisLockKey, _lockTimeSpan);
-            var indexFileMaxValue = (await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1)).FirstOrDefault();
-            if (indexFileMaxValue.IsNull) return null;
+            var indexFileMaxValue = (await SafeGetSortedRange(val, db, redisSetKey)).FirstOrDefault();
+            if (indexFileMaxValue.IsNull)
+            {
+                _emptyKeysCache.Set(redisSetKey, true, TimeSpan.FromMinutes(1));
+                return null;
+            }
             var indexFile = await db.HashGetAsync(redisValuesToFilesKey, indexFileMaxValue);
-            await _lockMechanism.ReleaseLockAsync(redisLockKey);
             if (indexFile == default) return null;
             var indexFileName = indexFile.ToString();
             return indexFileName;
+        }
+
+        private static async Task<RedisValue[]> SafeGetSortedRange(string val, IDatabaseAsync db, string redisSetKey)
+        {
+            var attempts = 0;
+            while (attempts < 5)
+            {
+                try
+                {
+                    return await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1);
+                }
+                catch
+                {
+                    attempts++;
+                }
+            }
+            return null;
+        }
+
+        public Task EnterBatch()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task ExitBatch(bool shouldUpdate = false)
+        {
+            return Task.CompletedTask;
         }
 
         private static string GetRedisKeyForColumn(string column)

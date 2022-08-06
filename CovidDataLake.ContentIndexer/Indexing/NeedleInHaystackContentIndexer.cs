@@ -105,16 +105,22 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task<IDictionary<string, List<RawEntry>>> GetFileMappingForColumn(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
+            //todo: lock root index file and download
+            //todo: then pass index file in some way to the get file name and value
             var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
-            await Parallel.ForEachAsync(columnValues, async (entry, token) =>
+            var lockTask = _rootIndexAccess.EnterBatch();
+            lockTask.Wait();
+            await Parallel.ForEachAsync(columnValues, async (entry, _) =>
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
-                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (key, value) =>
+                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
                 {
                     value.Add(entry);
                     return value;
                 });
             });
+            await _rootIndexAccess.ExitBatch();
+
             return mapping;
         }
     }

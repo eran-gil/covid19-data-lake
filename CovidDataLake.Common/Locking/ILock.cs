@@ -5,7 +5,8 @@ namespace CovidDataLake.Common.Locking
 {
     public interface ILock
     {
-        Task<bool> TakeLockAsync(string lockName, TimeSpan lockExpiration);
-        Task<bool> ReleaseLockAsync(string lockName);
+        void TakeLock(string lockName, TimeSpan lockExpiration);
+        void ReleaseLock(string lockName);
+        void ExtendLock(string lockName, TimeSpan lockExpiration);
     }
 }
