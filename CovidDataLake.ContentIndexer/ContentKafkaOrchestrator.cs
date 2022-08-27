@@ -62,7 +62,7 @@ namespace CovidDataLake.ContentIndexer
         {
             var fileType = originFilename.GetExtensionFromPath();
             var tableWrapperFactory =
-                _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
+                _tableWrapperFactories.First(extractor => extractor.IsFileTypeSupported(fileType));
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, originFilename);
             //todo: add handling of no available
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName, originFilename);

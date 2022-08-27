@@ -104,7 +104,7 @@ namespace CovidDataLake.Queries.Executors
         {
             indexFile.Seek(relevantSection.Offset, SeekOrigin.Begin);
             var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(endOffset);
-            var indexRow = indexRows.AsParallel().FirstOrDefault(row => row.Value.Equals(condition.Value));
+            var indexRow = indexRows.FirstOrDefault(row => row.Value.Equals(condition.Value));
             return indexRow;
         }
 

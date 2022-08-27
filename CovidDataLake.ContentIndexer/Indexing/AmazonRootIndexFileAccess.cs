@@ -74,7 +74,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
-                indexRows.AsParallel().FirstOrDefault(row => ValidateRowWithRequest(column, val, row));
+                indexRows.FirstOrDefault(row => ValidateRowWithRequest(column, val, row));
 
             if (relevantIndexRow == default(RootIndexRow))
                 return CommonKeys.END_OF_INDEX_FLAG;

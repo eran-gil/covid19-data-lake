@@ -45,6 +45,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 return;
             }
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
+            var lockTask = _rootIndexAccess.EnterBatch();
+            lockTask.Wait();
             foreach (var column in allColumns)
             {
                 var fileMapping = await GetFileMappingForColumn(column);
@@ -52,7 +54,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 columnUpdates.Add(columnUpdate);
             }
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
-
+            await _rootIndexAccess.ExitBatch(true);
         }
 
         private IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
@@ -91,8 +93,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup)
         {
             var (indexFileName, values) = fileGroup; 
-            var orderedValues = values.OrderBy(kvp=> kvp.Value).ToList();
-            var entries = orderedValues.GroupBy(entry => entry.Value).OrderBy(g => g.Key).Select(valuesGroup => valuesGroup.Aggregate(MergeEntries)).ToList();
+            var orderedValues = values.
+                AsParallel()
+                .Where(entry => entry != null)
+                .OrderBy(entry => entry.Value);
+            
+            var entries = orderedValues
+                .GroupBy(entry => entry.Value)
+                .OrderBy(g => g.Key)
+                .Select(valuesGroup => valuesGroup.Aggregate(MergeEntries))
+                .ToList();
             return await _indexFileWriter.UpdateIndexFileWithValues(entries, indexFileName);
         }
 
@@ -108,8 +118,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             //todo: lock root index file and download
             //todo: then pass index file in some way to the get file name and value
             var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
-            var lockTask = _rootIndexAccess.EnterBatch();
-            lockTask.Wait();
+
             await Parallel.ForEachAsync(columnValues, async (entry, _) =>
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
@@ -119,7 +128,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     return value;
                 });
             });
-            await _rootIndexAccess.ExitBatch();
 
             return mapping;
         }
