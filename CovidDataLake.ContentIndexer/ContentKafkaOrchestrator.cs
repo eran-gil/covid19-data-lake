@@ -58,14 +58,14 @@ namespace CovidDataLake.ContentIndexer
 
         }
 
-        private async Task<IFileTableWrapper> GetTableWrapperForFile(string filename)
+        private async Task<IFileTableWrapper> GetTableWrapperForFile(string originFilename)
         {
-            var fileType = filename.GetExtensionFromPath();
+            var fileType = originFilename.GetExtensionFromPath();
             var tableWrapperFactory =
                 _tableWrapperFactories.AsParallel().First(extractor => extractor.IsFileTypeSupported(fileType));
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
+            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, originFilename);
             //todo: add handling of no available
-            var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName);
+            var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName, originFilename);
             return tableWrapper;
         }
     }

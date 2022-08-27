@@ -5,6 +5,6 @@ namespace CovidDataLake.ContentIndexer.Extraction
     public interface IFileTableWrapperFactory
     {
         bool IsFileTypeSupported(string fileType);
-        IFileTableWrapper CreateTableWrapperForFile(string filename);
+        IFileTableWrapper CreateTableWrapperForFile(string filename, string originFilename);
     }
 }

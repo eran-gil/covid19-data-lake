@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using Jil;
 
@@ -9,20 +8,23 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 
 class JsonFileTableWrapper : IFileTableWrapper
 {
-    public JsonFileTableWrapper(string filename)
+    private readonly string _originFileName;
+
+    public JsonFileTableWrapper(string filename, string originFilename)
     {
         Filename = filename;
+        _originFileName = originFilename;
     }
     public string Filename { get; set; }
-    public async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>> GetColumns()
+    public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
     {
         var columns = new HashSet<string>();
         using (var fileStream = File.OpenRead(Filename))
         using (var reader = new StreamReader(fileStream))
         {
-            while (fileStream.Position < fileStream.Length)
+            while (!reader.EndOfStream)
             {
-                var line = await reader.ReadLineAsync();
+                var line = reader.ReadLine();
                 var currentItem = JSON.Deserialize<Dictionary<string, object>>(line);
                 columns.UnionWith(currentItem.Keys);
             }
@@ -31,17 +33,17 @@ class JsonFileTableWrapper : IFileTableWrapper
         return columns.ToDictionary(col => col, GetColumnValues);
     }
 
-    private async IAsyncEnumerable<RawEntry> GetColumnValues(string columnName)
+    private IEnumerable<RawEntry> GetColumnValues(string columnName)
     {
         using var fileStream = File.OpenRead(Filename);
         using var reader = new StreamReader(fileStream);
-        while (fileStream.Position < fileStream.Length)
+        while (!reader.EndOfStream)
         {
-            var line = await reader.ReadLineAsync();
+            var line = reader.ReadLine();
             var currentItem = JSON.Deserialize<Dictionary<string, object>>(line);
             if (currentItem.ContainsKey(columnName))
             {
-                yield return new RawEntry(Filename, currentItem[columnName].ToString());
+                yield return new RawEntry(_originFileName, currentItem[columnName].ToString());
             }
         }
     }

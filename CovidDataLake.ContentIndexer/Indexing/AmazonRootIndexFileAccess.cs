@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -74,7 +74,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
-                await indexRows.Where(row => ValidateRowWithRequest(column, val, row)).FirstOrDefaultAsync();
+                indexRows.AsParallel().FirstOrDefault(row => ValidateRowWithRequest(column, val, row));
 
             if (relevantIndexRow == default(RootIndexRow))
                 return CommonKeys.END_OF_INDEX_FLAG;
@@ -117,21 +117,21 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return indexRow.ColumnName == column && string.CompareOrdinal(val, indexRow.Max) < 0;
         }
 
-        private static async Task WriteIndexRowsToFile(string outputFileName, IAsyncEnumerable<RootIndexRow> outputRows)
+        private static async Task WriteIndexRowsToFile(string outputFileName, IEnumerable<RootIndexRow> outputRows)
         {
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             await using var outputStreamWriter = new StreamWriter(outputFile);
-            await foreach (var outputRow in outputRows)
+            foreach (var outputRow in outputRows)
             {
                 await outputStreamWriter.WriteObjectToLineAsync(outputRow);
             }
         }
 
-        private static async IAsyncEnumerable<RootIndexRow> MergeIndexWithUpdate(
-            IAsyncEnumerable<RootIndexRow> indexRows,
+        private static IEnumerable<RootIndexRow> MergeIndexWithUpdate(
+            IEnumerable<RootIndexRow> indexRows,
             IEnumerable<RootIndexColumnUpdate> updates)
         {
-            var indexRowsEnumerator = indexRows.GetAsyncEnumerator();
+            var indexRowsEnumerator = indexRows.GetEnumerator();
             var currentIndexRow = indexRowsEnumerator.Current;
             foreach (var currentUpdate in updates)
             {
@@ -146,7 +146,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     while (ShouldWriteOriginalIndexBeforeUpdate(currentIndexRow, updateRow))
                     {
                         yield return currentIndexRow;
-                        currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
+                        currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
                     }
 
                     if (currentIndexRow == null)
@@ -165,7 +165,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         currentIndexRow.Min = updateRow.Min;
                         currentIndexRow.Max = updateRow.Max;
                         yield return currentIndexRow;
-                        currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
+                        currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
                         continue;
                     }
 
@@ -180,7 +180,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             while (currentIndexRow != null)
             {
                 yield return currentIndexRow;
-                currentIndexRow = await GetNextIndexRow(indexRowsEnumerator);
+                currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
             }
         }
 
@@ -198,25 +198,17 @@ namespace CovidDataLake.ContentIndexer.Indexing
                         && string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0));
         }
 
-        private static async Task<RootIndexRow> GetNextIndexRow(IAsyncEnumerator<RootIndexRow> indexRowsEnumerator)
+        private static RootIndexRow GetNextIndexRow(IEnumerator<RootIndexRow> indexRowsEnumerator)
         {
-            RootIndexRow currentIndexRow;
-            if (await indexRowsEnumerator.MoveNextAsync())
-            {
-                currentIndexRow = null;
-            }
-            else
-            {
-                currentIndexRow = indexRowsEnumerator.Current;
-            }
+            var currentIndexRow = indexRowsEnumerator.MoveNext() ? null : indexRowsEnumerator.Current;
 
             return currentIndexRow;
         }
 
-        private static IAsyncEnumerable<RootIndexRow> GetIndexRowsFromFile(OptionalFileStream stream)
+        private static IEnumerable<RootIndexRow> GetIndexRowsFromFile(OptionalFileStream stream)
         {
             var indexFile = stream.BaseStream;
-            var rows = AsyncEnumerable.Empty<RootIndexRow>();
+            var rows = Enumerable.Empty<RootIndexRow>();
             if (indexFile != null)
             {
                 rows = indexFile.GetDeserializedRowsFromFileAsync<RootIndexRow>(indexFile.Length);

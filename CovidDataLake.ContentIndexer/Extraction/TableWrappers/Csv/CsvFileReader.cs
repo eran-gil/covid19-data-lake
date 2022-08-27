@@ -2,41 +2,44 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
-    public class AsyncCsvReader : IDisposable
+    public class CsvFileReader : IDisposable
     {
         private readonly StreamReader _stream;
         private readonly string _separator;
         private bool _headerRead;
 
-        public AsyncCsvReader(Stream stream, string separator = ",")
+        public CsvFileReader(Stream stream, string separator = ",")
         {
             _stream = new StreamReader(stream);
             _separator = separator;
             _headerRead = false;
         }
 
-        public async Task<IList<string>> ReadHeadersAsync()
+        public IList<string> ReadHeaders()
         {
-            var headerLine = await _stream.ReadLineAsync();
-            var headers = headerLine.Split(_separator);
+            var headerLine = _stream.ReadLine();
+            var headers = headerLine?.Split(_separator);
             _headerRead = true;
             return headers;
         }
 
-        public async IAsyncEnumerable<string> ReadColumn(int index)
+        public IEnumerable<string> ReadColumn(int index)
         {
             if (!_headerRead)
             {
-                await ReadHeadersAsync();
+                ReadHeaders();
             }
-            while(_stream.BaseStream.Position < _stream.BaseStream.Length)
+            while(!_stream.EndOfStream)
             {
-                var row = await _stream.ReadLineAsync();
+                var row = _stream.ReadLine();
+                if (row == null)
+                {
+                    continue;
+                }
+
                 var rowValues = row.Split(_separator);
                 yield return rowValues.ElementAtOrDefault(index);
             }

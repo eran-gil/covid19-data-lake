@@ -32,7 +32,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
         )
         {
-            var originalIndexValues = AsyncEnumerable.Empty<IndexValueModel>();
+            var originalIndexValues = Enumerable.Empty<IndexValueModel>();
 
             using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(sourceIndexFileName);
             if (fileStream.BaseStream != null)
@@ -43,8 +43,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
 
             var rootIndexRows = new List<RootIndexRow>();
-            var indexValueBatches = indexValues.Batch(_maxRowsPerFile);
-            await foreach (var batch in indexValueBatches)
+            var indexValueBatches = indexValues.Chunk(_maxRowsPerFile);
+            foreach (var batch in indexValueBatches)
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
                 var rootIndexRow = await MergeIndexValuesToFile(batch, outputFilename);
@@ -54,7 +54,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rootIndexRows;
         }
 
-        private static IAsyncEnumerable<IndexValueModel> GetIndexValuesFromFile(FileStream inputFile)
+        private static IEnumerable<IndexValueModel> GetIndexValuesFromFile(FileStream inputFile)
         {
             inputFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = inputFile.ReadBinaryLongFromStream();
@@ -63,11 +63,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rows;
         }
 
-        private static async IAsyncEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
-            IAsyncEnumerable<IndexValueModel> originalIndexValues,
+        private static IEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
+            IEnumerable<IndexValueModel> originalIndexValues,
             IList<RawEntry> newValues)
         {
-            await foreach (var indexValue in originalIndexValues)
+            foreach (var indexValue in originalIndexValues)
             {
                 if (!newValues.Any())
                 {
@@ -78,7 +78,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var currentInputValue = newValues.First();
                 if (currentInputValue.Value == indexValue.Value)
                 {
-                    indexValue.Files.AddRange(currentInputValue.OriginFilenames);
+                    indexValue.AddFiles(currentInputValue.OriginFilenames);
                     newValues.RemoveAt(0);
                 }
 
@@ -100,7 +100,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
         }
 
-        private async Task<RootIndexRow> MergeIndexValuesToFile(IAsyncEnumerable<IndexValueModel> indexValues, string outputFilename)
+        private async Task<RootIndexRow> MergeIndexValuesToFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
         {
             using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             using var outputStreamWriter = new StreamWriter(outputFile);
@@ -118,10 +118,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
         }
 
         private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
-            IAsyncEnumerable<IndexValueModel> indexValues, StreamWriter outputStreamWriter)
+            IEnumerable<IndexValueModel> indexValues, StreamWriter outputStreamWriter)
         {
             var rowsMetadata = new List<FileRowMetadata>();
-            await foreach (var indexValue in indexValues)
+            foreach (var indexValue in indexValues)
             {
                 var rowMetadata = new FileRowMetadata(outputStreamWriter.BaseStream.Position, indexValue.Value);
                 rowsMetadata.Add(rowMetadata);

@@ -7,9 +7,9 @@
             return fileType.ToLowerInvariant() == ".csv";
         }
 
-        public IFileTableWrapper CreateTableWrapperForFile(string filename)
+        public IFileTableWrapper CreateTableWrapperForFile(string filename, string originFilename)
         {
-            return new CsvFileTableWrapper(filename);
+            return new CsvFileTableWrapper(filename, originFilename);
         }
     }
 }

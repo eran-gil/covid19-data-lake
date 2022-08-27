@@ -61,7 +61,10 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddMemoryCache();
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
-            await orchestrator.StartOrchestration();
+            if (orchestrator != null)
+            {
+                await orchestrator.StartOrchestration();
+            }
         }
 
         private static IConfigurationRoot BuildConfiguration(string[] args)

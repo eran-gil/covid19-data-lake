@@ -30,7 +30,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _emptyKeysCache = memoryCache;
         }
 
+#pragma warning disable CS1998
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
+#pragma warning restore CS1998
         {
             var db = _connection.GetDatabase();
             foreach (var columnUpdate in columnMappings)

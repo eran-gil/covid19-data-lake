@@ -87,24 +87,24 @@ namespace CovidDataLake.Queries.Executors
                 return defaultResult;
             }
 
-            var (relevantSection, endOffset) = await GetRelevantSectionInIndex(indexFile, condition, metadataOffset, bloomOffset);
+            var (relevantSection, endOffset) = GetRelevantSectionInIndex(indexFile, condition, metadataOffset, bloomOffset);
             if (relevantSection == default(IndexMetadataSectionModel))
             {
                 return defaultResult;
             }
-            var indexRow = await GetIndexRowForCondition(condition, indexFile, relevantSection, endOffset);
+            var indexRow = GetIndexRowForCondition(condition, indexFile, relevantSection, endOffset);
             return indexRow == default(IndexValueModel)
                 ? defaultResult
                 : indexRow.Files.Select(file =>
                     new QueryResult { ["FileName"] = file, ["HitValues"] = new[] { condition.Value } });
         }
 
-        private static async Task<IndexValueModel> GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,
+        private static IndexValueModel GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,
             IndexMetadataSectionModel relevantSection, long endOffset)
         {
             indexFile.Seek(relevantSection.Offset, SeekOrigin.Begin);
             var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(endOffset);
-            var indexRow = await indexRows.FirstOrDefaultAsync(row => row.Value.Equals(condition.Value));
+            var indexRow = indexRows.AsParallel().FirstOrDefault(row => row.Value.Equals(condition.Value));
             return indexRow;
         }
 
@@ -115,14 +115,14 @@ namespace CovidDataLake.Queries.Executors
             return bloomFilter.IsInFilter(condition.Value);
         }
 
-        private static async Task<Tuple<IndexMetadataSectionModel, long>> GetRelevantSectionInIndex(FileStream indexFile, NeedleInHaystackColumnCondition condition,
+        private static Tuple<IndexMetadataSectionModel, long> GetRelevantSectionInIndex(FileStream indexFile, NeedleInHaystackColumnCondition condition,
             long metadataOffset, long bloomOffset)
         {
             indexFile.Seek(metadataOffset, SeekOrigin.Begin);
             var metadataRows = indexFile.GetDeserializedRowsFromFileAsync<IndexMetadataSectionModel>(bloomOffset);
             var relevantSection = default(IndexMetadataSectionModel);
             var endOffset = metadataOffset;
-            await foreach (var metadataRow in metadataRows)
+            foreach (var metadataRow in metadataRows)
             {
                 if (relevantSection != default(IndexMetadataSectionModel))
                 {
@@ -150,6 +150,7 @@ namespace CovidDataLake.Queries.Executors
             stream.Seek(offset, SeekOrigin.Begin);
             var bloomOffsetLength = (stream.Length - 2 * sizeof(long)) - offset;
             var serializedBloomFilter = new byte[bloomOffsetLength];
+            // ReSharper disable once MustUseReturnValue
             await stream.ReadAsync(serializedBloomFilter);
             return new PythonBloomFilter(serializedBloomFilter);
         }

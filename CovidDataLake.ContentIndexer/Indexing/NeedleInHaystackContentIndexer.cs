@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,10 +23,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task IndexTableAsync(IEnumerable<IFileTableWrapper> tableWrappers)
         {
-            var allColumns = new Dictionary<string, IAsyncEnumerable<RawEntry>>();
+            var allColumns = new Dictionary<string, IEnumerable<RawEntry>>();
             foreach (var tableWrapper in tableWrappers)
             {
-                var columnValues = await GetColumnValuesFromTableWrapper(tableWrapper);
+                var columnValues = GetColumnValuesFromTableWrapper(tableWrapper);
                 foreach (var (columnName, values) in columnValues)
                 {
                     if (allColumns.ContainsKey(columnName))
@@ -55,16 +55,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         }
 
-        private async Task<IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
+        private IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
         {
             try
             {
-                var columns = await tableWrapper.GetColumns();
+                var columns = tableWrapper.GetColumns();
                 return columns;
             }
             catch (Exception)
             {
-                return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
+                return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
             }
 
 
@@ -98,11 +98,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static RawEntry MergeEntries(RawEntry v1, RawEntry v2)
         {
-            v1.OriginFilenames.AddRange(v2.OriginFilenames);
+            v1.AddFileNames(v2.OriginFilenames);
             return v1;
         }
 
-        private async Task<IDictionary<string, List<RawEntry>>> GetFileMappingForColumn(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
+        private async Task<IDictionary<string, List<RawEntry>>> GetFileMappingForColumn(KeyValuePair<string, IEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
             //todo: lock root index file and download

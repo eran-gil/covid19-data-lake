@@ -7,8 +7,8 @@ class JsonFileTableWrapperFactory : IFileTableWrapperFactory
         return fileType.ToLowerInvariant() == ".json";
     }
 
-    public IFileTableWrapper CreateTableWrapperForFile(string filename)
+    public IFileTableWrapper CreateTableWrapperForFile(string filename, string originFilename)
     {
-        return new JsonFileTableWrapper(filename);
+        return new JsonFileTableWrapper(filename, originFilename);
     }
 }
