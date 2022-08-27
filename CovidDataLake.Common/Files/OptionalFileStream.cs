@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CovidDataLake.Common.Files
 {
@@ -8,7 +9,9 @@ namespace CovidDataLake.Common.Files
         private readonly string _filename;
         private readonly bool _shouldDelete;
         public FileStream BaseStream { get; }
-
+        private const int MinutesCacheTTL = 5;
+        private static readonly MemoryCache ValidFilesMemoryCache = new(new MemoryCacheOptions());
+        
         private OptionalFileStream(FileStream baseStream, string filename, bool shouldDelete)
         {
             _filename = filename;
@@ -29,7 +32,13 @@ namespace CovidDataLake.Common.Files
 
         private static bool IsFileGoodForReading(string filename)
         {
-            return File.Exists(filename) && new FileInfo(filename).Length > 0;
+            var isValid = ValidFilesMemoryCache.GetOrCreate(filename, entry =>
+               {
+                   entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(MinutesCacheTTL);
+                   return File.Exists(filename) && new FileInfo(filename).Length > 0;
+               }
+            );
+            return isValid;
         }
 
         public void Dispose()
