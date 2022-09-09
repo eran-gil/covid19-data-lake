@@ -33,7 +33,10 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             {
                 return GetDefaultValue();
             }
-            var columnValues = columnLocations.ToDictionary(column => column.Key, column => GetColumnValues(column.Value));
+            var columnValues = columnLocations.ToDictionary(
+                column => column.Key,
+                column => GetColumnValues(column.Value)
+            );
             return columnValues;
         }
 
@@ -44,11 +47,13 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             var values = new HashSet<string>();
             foreach (var value in columnValues)
             {
-                if (value != null && !values.Contains(value))
+                if (value == null || values.Contains(value))
                 {
-                    values.Add(value);
-                    yield return new RawEntry(_originFilename, value);
+                    continue;
                 }
+
+                values.Add(value);
+                yield return new RawEntry(_originFilename, value);
             }
         }
 
