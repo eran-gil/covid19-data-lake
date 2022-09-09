@@ -41,10 +41,14 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         {
             using var reader = CreateCsvReader(Filename);
             var columnValues = reader.ReadColumn(columnLocation);
+            var values = new HashSet<string>();
             foreach (var value in columnValues)
             {
-                if (value != null)
+                if (value != null && !values.Contains(value))
+                {
+                    values.Add(value);
                     yield return new RawEntry(_originFilename, value);
+                }
             }
         }
 
