@@ -8,6 +8,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 
 class JsonFileTableWrapper : IFileTableWrapper
 {
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly StringWrapper _originFilename;
     private readonly List<StringWrapper> _defaultOriginFilenames;
 
