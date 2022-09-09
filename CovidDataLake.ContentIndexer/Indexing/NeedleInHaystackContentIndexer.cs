@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,7 +25,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             var allColumns = tableWrappers
                 .SelectMany(wrapper => wrapper.GetColumns())
-                .GroupBy(kvp => kvp.Key)
+                .GroupBy(column => column.Key)
                 .AsParallel()
                 .ToDictionary(
                     group => group.Key,
@@ -81,11 +81,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup)
         {
             var (indexFileName, values) = fileGroup; 
-            var orderedValues = values
+            var entries = values
                 .Where(entry => entry != null)
-                .OrderBy(entry => entry.Value);
-            
-            var entries = orderedValues
                 .GroupBy(entry => entry.Value)
                 .OrderBy(g => g.Key)
                 .Select(valuesGroup => valuesGroup.Aggregate(MergeEntries))
@@ -95,7 +92,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static RawEntry MergeEntries(RawEntry v1, RawEntry v2)
         {
-            v1.AddFileNames(v2.OriginFilenames);
+            v1.MergeEntries(v2);
             return v1;
         }
 

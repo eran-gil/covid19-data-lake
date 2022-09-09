@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,12 +8,14 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
     class CsvFileTableWrapper : IFileTableWrapper
     {
-        private readonly string _originFilename;
+        private readonly StringWrapper _originFilename;
+        private readonly List<StringWrapper> _defaultOriginFilenames;
 
         public CsvFileTableWrapper(string filename, string originFilename)
         {
             Filename = filename;
-            _originFilename = originFilename;
+            _originFilename = new StringWrapper(originFilename);
+            _defaultOriginFilenames = new List<StringWrapper>{_originFilename};
         }
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()

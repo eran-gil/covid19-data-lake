@@ -5,27 +5,35 @@ namespace CovidDataLake.ContentIndexer.Extraction.Models
 {
     public class RawEntry
     {
-        private readonly HashSet<string> _originFilenames;
         //todo: add filename wrapper to save memory
-       //todo: test just reading the file and see how much time it takes
-       public List<string> OriginFilenames => _originFilenames.ToList();
+        private List<StringWrapper> _originFileNames;
+        private readonly bool _initiatedFromList;
+        public IEnumerable<string> OriginFilenames => _originFileNames.Select(wrapper => wrapper.Value);
 
-       public string Value { get; set; }
+        public string Value { get; set; }
 
-        public RawEntry(string originFilename, string value)
+        public RawEntry(StringWrapper originFilename, string value)
         {
-            _originFilenames = new HashSet<string>{originFilename};
+            _originFileNames = new List<StringWrapper> {originFilename};
             Value = value;
+            _initiatedFromList = false;
         }
 
-        public void AddFileName(string filename)
+        public RawEntry(List<StringWrapper> originFilenames, string value)
         {
-            _originFilenames.Add(filename);
+            _originFileNames = originFilenames;
+            Value = value;
+            _initiatedFromList = true;
         }
 
-        public void AddFileNames(IEnumerable<string> filenames)
+        public void MergeEntries(RawEntry other)
         {
-            _originFilenames.UnionWith(filenames);
+            if (_initiatedFromList)
+            {
+                _originFileNames = new List<StringWrapper>(_originFileNames);
+            }
+            _originFileNames.AddRange(other._originFileNames);
+            _originFileNames = _originFileNames.Distinct().ToList();
         }
     }
 }

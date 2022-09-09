@@ -8,12 +8,12 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 
 class JsonFileTableWrapper : IFileTableWrapper
 {
-    private readonly string _originFileName;
+    private readonly StringWrapper _originFilename;
 
     public JsonFileTableWrapper(string filename, string originFilename)
     {
         Filename = filename;
-        _originFileName = originFilename;
+        _originFilename = new StringWrapper(originFilename);
     }
     public string Filename { get; set; }
     public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
@@ -43,7 +43,7 @@ class JsonFileTableWrapper : IFileTableWrapper
             var currentItem = JSON.Deserialize<Dictionary<string, object>>(line);
             if (currentItem.ContainsKey(columnName))
             {
-                yield return new RawEntry(_originFileName, currentItem[columnName].ToString());
+                yield return new RawEntry(_originFilename, currentItem[columnName].ToString());
             }
         }
     }
