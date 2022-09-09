@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,9 +51,9 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
-            _lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            //_lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
@@ -67,11 +67,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
-            _lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            //_lockMechanism.ExtendLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
 
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 indexRows.FirstOrDefault(row => ValidateRowWithRequest(column, val, row));
