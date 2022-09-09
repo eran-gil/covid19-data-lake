@@ -37,7 +37,6 @@ namespace CovidDataLake.MetadataIndexer
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
             var downloadedFiles = files
-                .AsParallel()
                 .Select(async file => await DownloadFile(file))
                 .Select(downloadedFile => downloadedFile.Result)
                 .ToList();
