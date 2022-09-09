@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -23,23 +23,15 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task IndexTableAsync(IEnumerable<IFileTableWrapper> tableWrappers)
         {
-            var allColumns = new Dictionary<string, IEnumerable<RawEntry>>();
-            foreach (var tableWrapper in tableWrappers)
-            {
-                var columnValues = GetColumnValuesFromTableWrapper(tableWrapper);
-                foreach (var (columnName, values) in columnValues)
-                {
-                    if (allColumns.ContainsKey(columnName))
-                    {
-                        allColumns[columnName] = allColumns[columnName].Concat(values);
-                    }
-                    else
-                    {
-                        allColumns[columnName] = values;
-                    }
-                }
-
-            }
+            var allColumns = tableWrappers
+                .SelectMany(wrapper => wrapper.GetColumns())
+                .GroupBy(kvp => kvp.Key)
+                .AsParallel()
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.GetAllValues()
+                );
+            
             if (!allColumns.Any())
             {
                 return;
@@ -62,19 +54,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var fileMapping = await GetFileMappingForColumn(column);
             var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, fileMapping);
             return columnUpdate;
-        }
-
-        private IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
-        {
-            try
-            {
-                var columns = tableWrapper.GetColumns();
-                return columns;
-            }
-            catch (Exception)
-            {
-                return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
-            }
         }
 
         private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string columnName, IDictionary<string, List<RawEntry>> indexFilesMapping)
