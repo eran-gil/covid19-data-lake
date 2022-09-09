@@ -37,7 +37,7 @@ namespace CovidDataLake.MetadataIndexer
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
-            var allMetadata = new ConcurrentDictionary<string, List<string>>();
+            var allMetadata = new ConcurrentDictionary<string, ConcurrentBag<string>>();
             var downloadedFiles = files.AsParallel().Select(async file => await DownloadFile(file))
                 .Select(downloadedFile => downloadedFile.Result).ToList();
             var filesMetadata = downloadedFiles.AsParallel().Select(GetMetadataFromFile).ToList();
@@ -45,7 +45,7 @@ namespace CovidDataLake.MetadataIndexer
             {
                 foreach (var metadata in fileMetadata)
                 {
-                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, _ => new List<string>());
+                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, _ => new ConcurrentBag<string>());
                     metadataValues.Add(metadata.Value);
                 }
             });
@@ -53,7 +53,8 @@ namespace CovidDataLake.MetadataIndexer
             var tasks = new List<Task>();
             foreach (var metadata in allMetadata)
             {
-                tasks.AddRange(_indexers.Select(indexer => IndexMetadataAsTask(indexer, metadata)));
+                var convertedMetadata = new KeyValuePair<string, List<string>>(metadata.Key, metadata.Value.ToList());
+                tasks.AddRange(_indexers.Select(indexer => IndexMetadataAsTask(indexer, convertedMetadata)));
             }
 
             await Task.WhenAll(tasks);
