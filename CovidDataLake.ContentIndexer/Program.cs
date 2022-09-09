@@ -5,6 +5,7 @@ using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
+using CovidDataLake.Common.Python;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv;
@@ -57,6 +58,7 @@ namespace CovidDataLake.ContentIndexer
                 builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });
+            PythonGIL.Initialize();
 
             serviceCollection.AddMemoryCache();
             var serviceProvider = serviceCollection.BuildServiceProvider();

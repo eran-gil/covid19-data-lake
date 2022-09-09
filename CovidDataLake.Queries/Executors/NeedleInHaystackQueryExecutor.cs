@@ -111,7 +111,7 @@ namespace CovidDataLake.Queries.Executors
         private static async Task<bool> VerifyConditionWithBloomFilter(NeedleInHaystackColumnCondition condition,
             Stream indexFile, long bloomOffset)
         {
-            var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
+            using var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
             return bloomFilter.IsInFilter(condition.Value);
         }
 

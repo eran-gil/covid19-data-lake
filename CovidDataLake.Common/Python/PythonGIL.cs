@@ -2,8 +2,12 @@
 
 namespace CovidDataLake.Common.Python
 {
-    internal class PythonGIL
+    public class PythonGIL
     {
-        public static readonly Py.GILState GILState = Py.GIL();
+        public static void Initialize()
+        {
+            PythonEngine.Initialize();
+            PythonEngine.BeginAllowThreads();
+        }
     }
 }

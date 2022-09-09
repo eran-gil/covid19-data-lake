@@ -111,7 +111,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             rootIndexRow.FileName = outputFilename;
             await outputStreamWriter.FlushAsync();
             var bloomOffset = outputFile.Position;
-            await AddBloomFilterToIndex(rowsMetadata, outputFile);
+            AddBloomFilterToIndex(rowsMetadata, outputFile);
             await outputFile.FlushAsync();
             outputFile.WriteBinaryLongsToStream(new[] { newMetadataOffset, bloomOffset });
             return rootIndexRow;
@@ -146,16 +146,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rootIndexRow;
         }
 
-        private async Task AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
+        private void AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
         {
-            var bloomFilter = GetBloomFilter();
+            using var bloomFilter = GetBloomFilter();
             foreach (var row in rows)
             {
                 bloomFilter.Add(row.Value);
             }
 
             var outputBloomFilter = bloomFilter.Serialize();
-            await outputStream.WriteAsync(outputBloomFilter);
+            outputStream.Write(outputBloomFilter);
         }
 
         private PythonBloomFilter GetBloomFilter(byte[] serializedBloomFilter = null)

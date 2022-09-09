@@ -47,14 +47,21 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
-            foreach (var column in allColumns)
-            {
-                var fileMapping = await GetFileMappingForColumn(column);
-                var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, fileMapping);
-                columnUpdates.Add(columnUpdate);
-            }
+            await Parallel.ForEachAsync(allColumns, async (column, _) =>
+                {
+                    var columnUpdate = await UpdateColumnIndex(column);
+                    columnUpdates.Add(columnUpdate);
+                }
+            );
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
             await _rootIndexAccess.ExitBatch(true);
+        }
+
+        private async Task<RootIndexColumnUpdate> UpdateColumnIndex(KeyValuePair<string, IEnumerable<RawEntry>> column)
+        {
+            var fileMapping = await GetFileMappingForColumn(column);
+            var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, fileMapping);
+            return columnUpdate;
         }
 
         private IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumnValuesFromTableWrapper(IFileTableWrapper tableWrapper)
@@ -68,24 +75,26 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
             }
-
-
         }
 
         private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string columnName, IDictionary<string, List<RawEntry>> indexFilesMapping)
         {
-
-            var updateIndexTasks = indexFilesMapping.AsParallel().Select(WriteValuesGroupToFile).ToArray();
-            await Task.WhenAll(updateIndexTasks);
-            foreach (var updateIndexTask in updateIndexTasks)
+            var updateResults = new ConcurrentBag<RootIndexRow>();
+            await Parallel.ForEachAsync(indexFilesMapping, async (indexFileValues, _) =>
             {
-                updateIndexTask.Result.AsParallel().ForAll(row => row.ColumnName = columnName);
-            }
+                var updateResult = await WriteValuesGroupToFile(indexFileValues);
+                foreach (var rootIndexRow in updateResult)
+                {
+                    updateResults.Add(rootIndexRow);
+                }
+
+            });
+            updateResults.AsParallel().ForAll(row => row.ColumnName = columnName);
 
             var columnUpdate = new RootIndexColumnUpdate
             {
                 ColumnName = columnName,
-                Rows = updateIndexTasks.SelectMany(t => t.Result).ToList()
+                Rows = updateResults.ToList()
             };
             return columnUpdate;
         }
@@ -93,8 +102,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup)
         {
             var (indexFileName, values) = fileGroup; 
-            var orderedValues = values.
-                AsParallel()
+            var orderedValues = values
                 .Where(entry => entry != null)
                 .OrderBy(entry => entry.Value);
             

@@ -1,21 +1,17 @@
-﻿using System.Text;
-using CovidDataLake.Common.Python;
+﻿using System;
+using System.Text;
 using Python.Runtime;
 
 namespace CovidDataLake.Common.Probabilistic
 {
-    public class PythonBloomFilter
+    public class PythonBloomFilter : IDisposable
     {
         // ReSharper disable once NotAccessedField.Local
-        private static readonly Py.GILState PyGil;
         private readonly dynamic _filter;
         private const string BloomFilterLibrary = "probables";
         private readonly dynamic _pyProbables;
+        private readonly Py.GILState _pyGIL;
 
-        static PythonBloomFilter()
-        {
-            PyGil = PythonGIL.GILState;
-        }
 
         public PythonBloomFilter(int capacity, double errorRate) : this()
         {
@@ -29,6 +25,7 @@ namespace CovidDataLake.Common.Probabilistic
         }
         private PythonBloomFilter()
         {
+            _pyGIL = Py.GIL();
             _pyProbables = Py.Import(BloomFilterLibrary);
         }
 
@@ -49,5 +46,9 @@ namespace CovidDataLake.Common.Probabilistic
             return serializedBytes;
         }
 
+        public void Dispose()
+        {
+            _pyGIL?.Dispose();
+        }
     }
 }
