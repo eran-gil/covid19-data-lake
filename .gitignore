@@ -362,3 +362,5 @@ Scripts/ingestions.csv
 Scripts/log.json
 
 Scripts/queries.csv
+
+CovidDataLake.MetadataIndexer/Properties/launchSettings.json

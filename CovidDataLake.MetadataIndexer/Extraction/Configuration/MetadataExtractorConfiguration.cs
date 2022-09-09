@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace CovidDataLake.MetadataIndexer.Extraction.Configuration
+﻿namespace CovidDataLake.MetadataIndexer.Extraction.Configuration
 {
     public class MetadataExtractorConfiguration
     {

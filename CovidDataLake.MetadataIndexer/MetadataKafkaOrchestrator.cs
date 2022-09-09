@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.MetadataIndexer.Extraction;
@@ -44,13 +40,12 @@ namespace CovidDataLake.MetadataIndexer
             var allMetadata = new ConcurrentDictionary<string, List<string>>();
             var downloadedFiles = files.AsParallel().Select(async file => await DownloadFile(file))
                 .Select(downloadedFile => downloadedFile.Result).ToList();
-            var filesMetadata = downloadedFiles.AsParallel().Select(GetMetadataFromFile)
-                .Where(fileMetadata => fileMetadata != null).ToList();
+            var filesMetadata = downloadedFiles.AsParallel().Select(GetMetadataFromFile).ToList();
             Parallel.ForEach(filesMetadata, fileMetadata =>
             {
                 foreach (var metadata in fileMetadata)
                 {
-                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, s => new List<string>());
+                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, _ => new List<string>());
                     metadataValues.Add(metadata.Value);
                 }
             });

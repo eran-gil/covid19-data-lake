@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using CovidDataLake.Cloud.Amazon;
+﻿using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 
@@ -30,7 +27,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
             var indexFileName = GetIndexFilePath(data.Key);
             _fileLock.TakeLock(indexFileName, _lockTimeSpan);
 
-            string downloadedIndexFile;
+            string? downloadedIndexFile;
             try
             {
                 downloadedIndexFile = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
@@ -47,7 +44,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
             _fileLock.ReleaseLock(indexFileName);
         }
 
-        protected abstract T GetIndexObjectFromFile(string indexFile);
+        protected abstract T GetIndexObjectFromFile(string? indexFile);
 
         protected abstract string WriteIndexObjectToFile(T indexObject);
 

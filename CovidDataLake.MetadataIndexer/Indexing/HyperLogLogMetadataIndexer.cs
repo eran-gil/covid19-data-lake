@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using CovidDataLake.Cloud.Amazon;
+﻿using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.Common.Probabilistic;
@@ -19,7 +16,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
 
         protected override string IndexFolder => CommonKeys.HLL_FOLDER_NAME;
         protected override string FileType => CommonKeys.HLL_FILE_TYPE;
-        protected override HyperLogLog GetIndexObjectFromFile(string indexFile)
+        protected override HyperLogLog GetIndexObjectFromFile(string? indexFile)
         {
             if (string.IsNullOrEmpty(indexFile))
             {

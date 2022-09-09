@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Amazon.Runtime;
+﻿using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
@@ -8,6 +6,7 @@ using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Extraction.Configuration;
+using CovidDataLake.MetadataIndexer.Extraction.Tika;
 using CovidDataLake.MetadataIndexer.Indexing;
 using CovidDataLake.MetadataIndexer.Indexing.Configuration;
 using CovidDataLake.Pubsub.Kafka.Consumer;
@@ -32,7 +31,7 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.BindConfigurationToContainer<HyperLogLogMetadataIndexConfiguration>(configuration, "HyperLogLog");
             serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
             serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
-            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexConfig");
+            serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<BatchOrchestratorConfiguration>(configuration, "BatchConfig");
             serviceCollection.AddSingleton<IMetadataExtractor, TikaMetadataExtractor>();
             serviceCollection.AddSingleton<IMetadataIndexer, HyperLogLogMetadataIndexer>();
@@ -48,6 +47,7 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddSingleton<IOrchestrator, MetadataKafkaOrchestrator>();
+            serviceCollection.AddSingleton<TikaAdapter, TikaAdapter>();
             serviceCollection.AddLogging(builder =>
             {
                 builder.ClearProviders();

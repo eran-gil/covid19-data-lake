@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using CovidDataLake.Cloud.Amazon;
+﻿using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.Common.Probabilistic;
@@ -23,7 +20,7 @@ namespace CovidDataLake.MetadataIndexer.Indexing
 
         protected override string IndexFolder => CommonKeys.CMS_FOLDER_NAME;
         protected override string FileType => CommonKeys.CMS_FILE_TYPE;
-        protected override StringCountMinSketch GetIndexObjectFromFile(string indexFile)
+        protected override StringCountMinSketch GetIndexObjectFromFile(string? indexFile)
         {
             if (string.IsNullOrEmpty(indexFile))
             {
