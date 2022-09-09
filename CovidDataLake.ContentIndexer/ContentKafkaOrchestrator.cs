@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,17 +38,16 @@ namespace CovidDataLake.ContentIndexer
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var filesCount = 0;
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Content" };
             using var scope = _logger.BeginScope(loggingProperties);
-            var tableWrappers = new List<IFileTableWrapper>();
-            foreach (var filename in files)
+            var tableWrappers = new ConcurrentBag<IFileTableWrapper>();
+            await Parallel.ForEachAsync(files, async (filename, _) =>
             {
                 var tableWrapper = await GetTableWrapperForFile(filename);
                 tableWrappers.Add(tableWrapper);
-                filesCount++;
-            }
+            });
+            var filesCount = tableWrappers.Count;
             _logger.LogInformation("ingestion-start");
 
             await _contentIndexer.IndexTableAsync(tableWrappers);
