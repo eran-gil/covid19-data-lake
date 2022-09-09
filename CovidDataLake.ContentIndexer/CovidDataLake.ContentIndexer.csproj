@@ -14,8 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="28.0.1" />
-    <PackageReference Include="csvtools" Version="1.0.12" />
     <PackageReference Include="jil" Version="2.17.0" />
     <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="log4net.Ext.Json" Version="2.0.10.1" />
