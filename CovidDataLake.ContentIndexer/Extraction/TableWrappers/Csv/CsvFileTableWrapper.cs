@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,6 +8,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
     class CsvFileTableWrapper : IFileTableWrapper
     {
+        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly StringWrapper _originFilename;
         private readonly List<StringWrapper> _defaultOriginFilenames;
 
@@ -59,7 +60,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 values.Add(value);
-                yield return new RawEntry(_originFilename, value);
+                yield return new RawEntry(_defaultOriginFilenames, value);
             }
         }
 

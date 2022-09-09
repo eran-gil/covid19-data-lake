@@ -32,6 +32,13 @@ namespace CovidDataLake.ContentIndexer.Extensions
             await streamWriter.WriteLineAsync(serialized);
         }
 
+        public static void WriteObjectToLine<T>(this StreamWriter streamWriter, T indexValue)
+        {
+            if (streamWriter == null) throw new ArgumentNullException(nameof(streamWriter));
+            var serialized = JSON.Serialize(indexValue);
+            streamWriter.WriteLine(serialized);
+        }
+
         public static long ReadBinaryLongFromStream(this Stream stream)
         {
             if (stream == null) throw new ArgumentNullException(nameof(stream));

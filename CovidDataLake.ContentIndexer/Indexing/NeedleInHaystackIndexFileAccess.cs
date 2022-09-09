@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Probabilistic;
@@ -29,7 +28,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _maxRowsPerFile = configuration.MaxRowsPerFile;
         }
 
-        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
+        public IList<RootIndexRow> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
         )
         {
             var originalIndexValues = Enumerable.Empty<IndexValueModel>();
@@ -42,14 +41,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
             var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
 
-            var rootIndexRows = new List<RootIndexRow>();
             var indexValueBatches = indexValues.Chunk(_maxRowsPerFile);
-            foreach (var batch in indexValueBatches)
+            var rootIndexRows = indexValueBatches.AsParallel().AsOrdered().Select(batch =>
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-                var rootIndexRow = await MergeIndexValuesToFile(batch, outputFilename);
-                rootIndexRows.Add(rootIndexRow);
-            }
+                var rootIndexRow = MergeIndexValuesToFile(batch, outputFilename);
+                return rootIndexRow;
+            }).ToList();
 
             return rootIndexRows;
         }
@@ -100,24 +98,24 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
         }
 
-        private async Task<RootIndexRow> MergeIndexValuesToFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
+        private RootIndexRow MergeIndexValuesToFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
         {
             using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             using var outputStreamWriter = new StreamWriter(outputFile);
-            var rowsMetadata = await WriteIndexValuesToFile(indexValues, outputStreamWriter);
-            await outputStreamWriter.FlushAsync();
+            var rowsMetadata = WriteIndexValuesToFile(indexValues, outputStreamWriter);
+            outputStreamWriter.Flush();
             var newMetadataOffset = outputFile.Position;
-            var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
+            var rootIndexRow = AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
             rootIndexRow.FileName = outputFilename;
-            await outputStreamWriter.FlushAsync();
+            outputStreamWriter.Flush();
             var bloomOffset = outputFile.Position;
             AddBloomFilterToIndex(rowsMetadata, outputFile);
-            await outputFile.FlushAsync();
+            outputFile.Flush();
             outputFile.WriteBinaryLongsToStream(new[] { newMetadataOffset, bloomOffset });
             return rootIndexRow;
         }
 
-        private static async Task<List<FileRowMetadata>> WriteIndexValuesToFile(
+        private static List<FileRowMetadata> WriteIndexValuesToFile(
             IEnumerable<IndexValueModel> indexValues, StreamWriter outputStreamWriter)
         {
             var rowsMetadata = new List<FileRowMetadata>();
@@ -125,13 +123,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var rowMetadata = new FileRowMetadata(outputStreamWriter.BaseStream.Position, indexValue.Value);
                 rowsMetadata.Add(rowMetadata);
-                await outputStreamWriter.WriteObjectToLineAsync(indexValue);
+                outputStreamWriter.WriteObjectToLine(indexValue);
             }
 
             return rowsMetadata;
         }
 
-        private async Task<RootIndexRow> AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata,
+        private RootIndexRow AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata,
             StreamWriter outputStreamWriter)
         {
             var metadataSections = CreateMetadataFromRows(rowsMetadata).ToList();
@@ -140,7 +138,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var rootIndexRow = new RootIndexRow(null, minValue, maxValue, null);
             foreach (var metadataSection in metadataSections)
             {
-                await outputStreamWriter.WriteObjectToLineAsync(metadataSection);
+                outputStreamWriter.WriteObjectToLine(metadataSection);
             }
 
             return rootIndexRow;

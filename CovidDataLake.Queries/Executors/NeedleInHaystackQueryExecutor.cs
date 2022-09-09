@@ -73,7 +73,7 @@ namespace CovidDataLake.Queries.Executors
                 return defaultResult;
             }
 
-            var downloadedFileName = await this.DownloadIndexFile(indexFileName);//await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFileName);
+            var downloadedFileName = await DownloadIndexFile(indexFileName);
             if (string.IsNullOrEmpty(downloadedFileName))
             {
                 return Enumerable.Empty<QueryResult>();

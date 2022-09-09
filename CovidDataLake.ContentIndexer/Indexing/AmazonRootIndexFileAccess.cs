@@ -56,7 +56,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            await WriteIndexRowsToFile(outputFileName, outputRows);
+            WriteIndexRowsToFile(outputFileName, outputRows);
             _rootIndexLocalFileName = outputFileName;
             await _cache.UpdateColumnRanges(columnMappings);
             _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
@@ -115,13 +115,13 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return indexRow.ColumnName == column && string.CompareOrdinal(val, indexRow.Max) < 0;
         }
 
-        private static async Task WriteIndexRowsToFile(string outputFileName, IEnumerable<RootIndexRow> outputRows)
+        private static void WriteIndexRowsToFile(string outputFileName, IEnumerable<RootIndexRow> outputRows)
         {
-            await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
-            await using var outputStreamWriter = new StreamWriter(outputFile);
+            using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
+            using var outputStreamWriter = new StreamWriter(outputFile);
             foreach (var outputRow in outputRows)
             {
-                await outputStreamWriter.WriteObjectToLineAsync(outputRow);
+                outputStreamWriter.WriteObjectToLine(outputRow);
             }
         }
 

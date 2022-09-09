@@ -35,7 +35,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 indexFilename = downloadedFilename;
             }
 
-            var rootIndexRows = await _indexFileAccess.CreateUpdatedIndexFileWithValues(downloadedFilename, values);
+            var rootIndexRows = _indexFileAccess.CreateUpdatedIndexFileWithValues(downloadedFilename, values);
             for (var i = 0; i < rootIndexRows.Count; i++)
             {
                 var rootIndexRow = rootIndexRows[i];

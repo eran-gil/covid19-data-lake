@@ -31,8 +31,8 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
         public async Task Consume(Func<IEnumerable<string>, Task> handleMessages, CancellationToken cancellationToken)
         {
             //var consumeResults = ConsumeBatch();
-            //var batch = new List<string> { "__CONTENT__/covid_lab_tests.csv" };
-            var batch = new List<string> { "__CONTENT__/corona_output.csv" };
+            var batch = new List<string> { "__CONTENT__/covid_lab_tests.csv" };
+            //var batch = new List<string> { "__CONTENT__/corona_output.csv" };
             //var batch = new List<string> { "__CONTENT__/2022/7/16/034d2fe4-baf7-420a-bf1a-96c79622bf0c.csv" };
             //var batch = consumeResults.Select(result => result.Message.Value);
             await handleMessages(batch);
