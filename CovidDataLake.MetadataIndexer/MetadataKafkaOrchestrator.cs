@@ -50,7 +50,7 @@ namespace CovidDataLake.MetadataIndexer
                 .GroupBy(metadataEntry => metadataEntry.Key)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.AsEnumerable().Select(metadata => metadata.Value).ToList()
+                    group => group.Select(metadata => metadata.Value).ToList()
                 );
 
             var filesCount = downloadedFiles.Count;
