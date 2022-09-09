@@ -18,16 +18,17 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
         {
-            var columnLocations = new Dictionary<string, int>();
+            Dictionary<string, int> columnLocations;
             try
             {
                 using var fileStream = File.OpenRead(Filename);
                 var reader = CreateCsvReader(fileStream);
                 var columnNames = reader.ReadHeaders();
-                for(int i = 0; i < columnNames.Count; i++)
-                {
-                    columnLocations[columnNames[i]] = i; 
-                }
+                columnLocations = Enumerable.Range(0, columnNames.Count)
+                    .ToDictionary(
+                        columnIndex => columnNames[columnIndex],
+                        columnIndex => columnIndex
+                    );
             }
             catch (Exception)
             {
