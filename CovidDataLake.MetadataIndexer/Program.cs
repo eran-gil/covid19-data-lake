@@ -56,7 +56,7 @@ namespace CovidDataLake.MetadataIndexer
             });
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var orchestrator = serviceProvider.GetService<IOrchestrator>();
-            await orchestrator.StartOrchestration();
+            await orchestrator?.StartOrchestration()!;
         }
 
         private static IConfigurationRoot BuildConfiguration(string[] args)
