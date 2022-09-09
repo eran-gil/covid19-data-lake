@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using CovidDataLake.Cloud.Amazon;
+﻿using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Indexing;
@@ -37,24 +36,29 @@ namespace CovidDataLake.MetadataIndexer
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
-            var allMetadata = new ConcurrentDictionary<string, ConcurrentBag<string>>();
-            var downloadedFiles = files.AsParallel().Select(async file => await DownloadFile(file))
-                .Select(downloadedFile => downloadedFile.Result).ToList();
-            var filesMetadata = downloadedFiles.AsParallel().Select(GetMetadataFromFile).ToList();
-            Parallel.ForEach(filesMetadata, fileMetadata =>
-            {
-                foreach (var metadata in fileMetadata)
-                {
-                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, _ => new ConcurrentBag<string>());
-                    metadataValues.Add(metadata.Value);
-                }
-            });
-            var filesCount = filesMetadata.Count;
+            var downloadedFiles = files
+                .AsParallel()
+                .Select(async file => await DownloadFile(file))
+                .Select(downloadedFile => downloadedFile.Result)
+                .ToList();
+
+            var filesMetadata = downloadedFiles
+                .AsParallel()
+                .Select(GetMetadataFromFile);
+
+            var allMetadata = filesMetadata
+                .SelectMany(fileMetadata => fileMetadata)
+                .GroupBy(metadataEntry => metadataEntry.Key)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.AsEnumerable().Select(metadata => metadata.Value).ToList()
+                );
+
+            var filesCount = downloadedFiles.Count;
             var tasks = new List<Task>();
             foreach (var metadata in allMetadata)
             {
-                var convertedMetadata = new KeyValuePair<string, List<string>>(metadata.Key, metadata.Value.ToList());
-                tasks.AddRange(_indexers.Select(indexer => IndexMetadataAsTask(indexer, convertedMetadata)));
+                tasks.AddRange(_indexers.Select(indexer => IndexMetadataAsTask(indexer, metadata)));
             }
 
             await Task.WhenAll(tasks);
