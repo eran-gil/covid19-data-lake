@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,33 +37,24 @@ namespace CovidDataLake.MetadataIndexer
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var filesCount = 0;
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
-            var allMetadata = new Dictionary<string, List<string>>();
-            foreach (var file in files)
+            var allMetadata = new ConcurrentDictionary<string, List<string>>();
+            var downloadedFiles = files.AsParallel().Select(async file => await DownloadFile(file))
+                .Select(downloadedFile => downloadedFile.Result).ToList();
+            var filesMetadata = downloadedFiles.AsParallel().Select(GetMetadataFromFile)
+                .Where(fileMetadata => fileMetadata != null).ToList();
+            Parallel.ForEach(filesMetadata, fileMetadata =>
             {
-                var fileMetadata = await GetMetadataFromFile(file);
-                if (fileMetadata == null)
-                {
-                    continue;
-                }
-
                 foreach (var metadata in fileMetadata)
                 {
-                    if (allMetadata.ContainsKey(metadata.Key))
-                    {
-                        allMetadata[metadata.Key].Add(metadata.Value);
-                    }
-                    else
-                    {
-                        allMetadata[metadata.Key] = new List<string> { metadata.Value };
-                    }
+                    var metadataValues = allMetadata.GetOrAdd(metadata.Key, s => new List<string>());
+                    metadataValues.Add(metadata.Value);
                 }
-                filesCount++;
-            }
+            });
+            var filesCount = filesMetadata.Count;
             var tasks = new List<Task>();
             foreach (var metadata in allMetadata)
             {
@@ -76,9 +68,14 @@ namespace CovidDataLake.MetadataIndexer
             _logger.LogInformation("ingestion-end");
         }
 
-        private async Task<Dictionary<string, string>> GetMetadataFromFile(string filename)
+        private async Task<string> DownloadFile(string filename)
         {
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, filename);
+            return downloadedFileName;
+        }
+
+        private Dictionary<string, string> GetMetadataFromFile(string downloadedFileName)
+        {
             var allMetadata = _extractors.AsParallel().SelectMany(extractor => extractor.ExtractMetadata(downloadedFileName))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             return allMetadata;
