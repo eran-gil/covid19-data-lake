@@ -1,5 +1,4 @@
 ﻿using java.io;
-using org.apache.tika.exception;
 using org.apache.tika.metadata;
 using org.apache.tika.parser;
 using org.apache.tika.sax;
