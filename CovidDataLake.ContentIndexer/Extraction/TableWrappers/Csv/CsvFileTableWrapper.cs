@@ -44,11 +44,14 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         private IEnumerable<RawEntry> GetColumnValues(int columnLocation)
         {
             using var reader = CreateCsvReader(Filename);
-            var columnValues = reader.ReadColumn(columnLocation);
+            var columnValues = reader
+                .ReadColumn(columnLocation)
+                .Where(value => value != null);
+
             var values = new HashSet<string>();
             foreach (var value in columnValues)
             {
-                if (value == null || values.Contains(value))
+                if (values.Contains(value))
                 {
                     continue;
                 }
@@ -58,14 +61,14 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             }
         }
 
-        private CsvFileReader CreateCsvReader(string filename)
+        private static CsvFileReader CreateCsvReader(string filename)
         {
             var stream = File.OpenRead(filename);
             stream.Seek(0, SeekOrigin.Begin);
             return CreateCsvReader(stream);
         }
 
-        private CsvFileReader CreateCsvReader(Stream stream)
+        private static CsvFileReader CreateCsvReader(Stream stream)
         {
             var csvReader = new CsvFileReader(stream);
             return csvReader;
