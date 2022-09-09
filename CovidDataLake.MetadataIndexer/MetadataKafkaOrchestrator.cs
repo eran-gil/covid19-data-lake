@@ -55,17 +55,18 @@ namespace CovidDataLake.MetadataIndexer
                 );
 
             var filesCount = downloadedFiles.Count;
-            var tasks = new List<Task>();
-            foreach (var metadata in allMetadata)
-            {
-                tasks.AddRange(_indexers.Select(indexer => IndexMetadataAsTask(indexer, metadata)));
-            }
+            var indexingTasks = allMetadata.SelectMany(IndexMetadataForAllIndexers);
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(indexingTasks);
             var filesLoggingProperties =
                 new Dictionary<string, object> { ["FilesCount"] = filesCount };
             using var filesScope = _logger.BeginScope(filesLoggingProperties);
             _logger.LogInformation("ingestion-end");
+        }
+
+        private IEnumerable<Task> IndexMetadataForAllIndexers(KeyValuePair<string, List<string>> metadata)
+        {
+            return _indexers.Select(indexer => IndexMetadataAsTask(indexer, metadata));
         }
 
         private async Task<string> DownloadFile(string filename)
