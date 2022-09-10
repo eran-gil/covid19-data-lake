@@ -42,11 +42,11 @@ The data lake is accompanied by an API to do the following:
         "Instances": [
             {
                 "Host": "[HOST_NAME]",
-                "Port": [PORT]
+                "Port": 9092
             }
         ],
         "Topic": "[TOPIC_NAME]",
         "GroupId": "[CONSUMER_GROUP_ID]" //this is used only for consuming projects (aka indexing engines)
-  }
+}
 ```
 * Project-specific requirements are listed inside each project's folder
