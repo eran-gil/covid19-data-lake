@@ -111,7 +111,7 @@ namespace CovidDataLake.Queries.Executors
         private static async Task<bool> VerifyConditionWithBloomFilter(NeedleInHaystackColumnCondition condition,
             Stream indexFile, long bloomOffset)
         {
-            using var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
+            var bloomFilter = await GetBloomFilterFromFile(indexFile, bloomOffset);
             return bloomFilter.IsInFilter(condition.Value);
         }
 
@@ -140,7 +140,7 @@ namespace CovidDataLake.Queries.Executors
             return new Tuple<IndexMetadataSectionModel, long>(relevantSection, endOffset);
         }
 
-        private static async Task<PythonBloomFilter> GetBloomFilterFromFile(Stream stream, long offset)
+        private static async Task<BasicBloomFilter> GetBloomFilterFromFile(Stream stream, long offset)
         {
             if (stream == null)
             {
@@ -152,7 +152,8 @@ namespace CovidDataLake.Queries.Executors
             var serializedBloomFilter = new byte[bloomOffsetLength];
             // ReSharper disable once MustUseReturnValue
             await stream.ReadAsync(serializedBloomFilter);
-            return new PythonBloomFilter(serializedBloomFilter);
+            using var bloomFilterStream = new MemoryStream(serializedBloomFilter);
+            return new BasicBloomFilter(bloomFilterStream);
         }
 
     }

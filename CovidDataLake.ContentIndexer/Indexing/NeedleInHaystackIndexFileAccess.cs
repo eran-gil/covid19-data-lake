@@ -146,25 +146,25 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private void AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
         {
-            using var bloomFilter = GetBloomFilter();
+            var bloomFilter = GetBloomFilter();
             foreach (var row in rows)
             {
                 bloomFilter.Add(row.Value);
             }
 
-            var outputBloomFilter = bloomFilter.Serialize();
-            outputStream.Write(outputBloomFilter);
+            bloomFilter.Serialize(outputStream);
         }
 
-        private PythonBloomFilter GetBloomFilter(byte[] serializedBloomFilter = null)
+        private BasicBloomFilter GetBloomFilter(byte[] serializedBloomFilter = null)
         {
             // ReSharper disable once ConvertIfStatementToReturnStatement
             if (serializedBloomFilter == null)
             {
-                return new PythonBloomFilter(_bloomFilterCapacity, _bloomFilterErrorRate);
+                return new BasicBloomFilter(_bloomFilterCapacity, _bloomFilterErrorRate);
             }
 
-            return new PythonBloomFilter(serializedBloomFilter);
+            using var bloomFilterStream = new MemoryStream(serializedBloomFilter);
+            return new BasicBloomFilter(bloomFilterStream);
         }
 
         private IEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IList<FileRowMetadata> rowMetadatas)

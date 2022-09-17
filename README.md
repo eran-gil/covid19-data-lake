@@ -23,12 +23,6 @@ The data lake is accompanied by an API to do the following:
 
 ### Getting Started Requirements
 * [.NET 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) installed
-* [Python](https://www.python.org/downloads/release/python-396/) (>3.7) installed and added correctly to the `PATH` environment variable
-* [`pyprobables`](https://pyprobables.readthedocs.io/en/latest/quickstart.html) python-module installed
-    ```sh
-    pip install pyprobables
-    ```
-* `PYTHONNET_PYDLL` environment variable set to the relevant python installation
 * [Redis server](https://redis.io/download/) running and configured correctly in all relevant `appsettings.json` files in the following way:
 ```json
 {
