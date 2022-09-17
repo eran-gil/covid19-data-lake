@@ -1,4 +1,5 @@
-﻿using CovidDataLake.Cloud.Amazon;
+﻿using System.Collections.Concurrent;
+using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Indexing;
@@ -35,15 +36,17 @@ namespace CovidDataLake.MetadataIndexer
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
             using var scope = _logger.BeginScope(loggingProperties);
+            var downloadedFiles = new ConcurrentBag<string>();
+            await Parallel.ForEachAsync(files, async (file, _) =>
+            {
+                var downloadedFile = await DownloadFile(file);
+                downloadedFiles.Add(downloadedFile);
+            });
             _logger.LogInformation("ingestion-start");
-            var downloadedFiles = files
-                .Select(async file => await DownloadFile(file))
-                .Select(downloadedFile => downloadedFile.Result)
-                .ToList();
-
             var filesMetadata = downloadedFiles
                 .AsParallel()
-                .Select(GetMetadataFromFile);
+                .Select(GetMetadataFromFile)
+                .ToList();
 
             var allMetadata = filesMetadata
                 .SelectMany(fileMetadata => fileMetadata)
