@@ -1,8 +1,7 @@
 ﻿using java.io;
 using org.apache.tika.metadata;
-using org.apache.tika.parser;
-using org.apache.tika.sax;
-using File = java.io.File;
+using org.apache.tika;
+using TikaClient = org.apache.tika.Tika;
 
 namespace CovidDataLake.MetadataIndexer.Extraction.Tika
 {
@@ -10,16 +9,22 @@ namespace CovidDataLake.MetadataIndexer.Extraction.Tika
     {
         public Dictionary<string, string> ExtractMetadata(string filename)
         {
-            File file = new File(filename);
-            Parser parser = new AutoDetectParser();
-            BodyContentHandler handler = new BodyContentHandler(-1);
-            Metadata metadata = new Metadata();
-            FileInputStream inputStream = new FileInputStream(file);
-            ParseContext context = new ParseContext();
-            parser.parse(inputStream, handler, metadata, context);
-            var metadataNames = metadata.names();
-            var metadataResult = metadataNames.ToDictionary(name => name, name => metadata.get(name));
-            return metadataResult;
+            try
+            {
+                TikaClient tika = new TikaClient();
+                Metadata metadata = new Metadata();
+                FileInputStream inputStream = new FileInputStream(filename);
+                var reader = tika.parse(inputStream, metadata);
+                var metadataNames = metadata.names();
+                var metadataResult = metadataNames.ToDictionary(name => name, name => metadata.get(name));
+                reader.close();
+                return metadataResult;
+            }
+            catch
+            {
+                return new Dictionary<string, string>();
+            }
+            
         }
     }
 }
