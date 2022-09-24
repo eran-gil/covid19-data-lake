@@ -22,10 +22,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _bucketName = configuration.BucketName;
         }
 
-        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<RawEntry> values, string indexFilename)
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(IList<RawEntry> values, string indexFilename, string columnName)
         {
             var downloadedFilename =
-                CreateNewColumnIndexFileName();
+                CreateNewColumnIndexFileName(columnName);
             if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)
             {
                 downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
@@ -40,16 +40,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 var rootIndexRow = rootIndexRows[i];
                 var localFileName = rootIndexRow.FileName;
-                rootIndexRow.FileName = i == 0 ? indexFilename : CreateNewColumnIndexFileName();
+                rootIndexRow.FileName = i == 0 ? indexFilename : CreateNewColumnIndexFileName(columnName);
                 await _amazonAdapter.UploadObjectAsync(_bucketName, rootIndexRow.FileName, localFileName);
             }
 
             return rootIndexRows;
         }
 
-        private static string CreateNewColumnIndexFileName()
+        private static string CreateNewColumnIndexFileName(string columnName)
         {
-            return $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{Guid.NewGuid()}.txt";
+            return $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{columnName}/{Guid.NewGuid()}.txt";
         }
     }
 }

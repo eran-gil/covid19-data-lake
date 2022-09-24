@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -61,7 +61,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var updateResults = new ConcurrentBag<RootIndexRow>();
             await Parallel.ForEachAsync(indexFilesMapping, async (indexFileValues, _) =>
             {
-                var updateResult = await WriteValuesGroupToFile(indexFileValues);
+                var updateResult = await WriteValuesGroupToFile(indexFileValues, columnName);
                 foreach (var rootIndexRow in updateResult)
                 {
                     updateResults.Add(rootIndexRow);
@@ -78,7 +78,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return columnUpdate;
         }
 
-        private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup)
+        private async Task<IEnumerable<RootIndexRow>> WriteValuesGroupToFile(KeyValuePair<string, List<RawEntry>> fileGroup, string columnName)
         {
             var (indexFileName, values) = fileGroup; 
             var entries = values
@@ -87,7 +87,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 .OrderBy(g => g.Key)
                 .Select(valuesGroup => valuesGroup.Aggregate(MergeEntries))
                 .ToList();
-            return await _indexFileWriter.UpdateIndexFileWithValues(entries, indexFileName);
+            return await _indexFileWriter.UpdateIndexFileWithValues(entries, indexFileName, columnName);
         }
 
         private static RawEntry MergeEntries(RawEntry v1, RawEntry v2)
