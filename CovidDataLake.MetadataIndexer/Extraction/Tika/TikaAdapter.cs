@@ -1,6 +1,5 @@
 ﻿using java.io;
 using org.apache.tika.metadata;
-using org.apache.tika;
 using TikaClient = org.apache.tika.Tika;
 
 namespace CovidDataLake.MetadataIndexer.Extraction.Tika
