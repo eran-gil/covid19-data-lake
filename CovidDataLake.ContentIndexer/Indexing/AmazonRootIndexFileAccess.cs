@@ -31,7 +31,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _lockMechanism = lockMechanism;
             _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockTimeSpanInSeconds);
             _bucketName = configuration.BucketName;
-            _rootIndexName = $"{CommonKeys.INDEX_FOLDER_NAME}/{configuration.RootIndexName}";
+            _rootIndexName = $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{configuration.RootIndexName}";
             _rootIndexLocalFileName = null;
         }
 
