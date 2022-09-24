@@ -10,7 +10,6 @@ using CovidDataLake.Queries.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace CovidDataLake.WebApi.Controllers
 {

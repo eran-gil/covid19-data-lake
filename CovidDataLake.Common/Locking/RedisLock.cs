@@ -1,6 +1,4 @@
-using System;
-using System.Threading;
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 
 namespace CovidDataLake.Common.Locking
 {

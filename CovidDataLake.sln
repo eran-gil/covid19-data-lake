@@ -20,9 +20,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Cloud", "Covi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Pubsub", "CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj", "{F209A20C-F6DC-417F-AB2C-8835137C1445}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Common", "CovidDataLake.Common\CovidDataLake.Common.csproj", "{808BF9F2-C42C-4982-AA03-C4AA9E1C94C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.MetadataIndexer", "CovidDataLake.MetadataIndexer\CovidDataLake.MetadataIndexer.csproj", "{21C0755E-CEF9-4348-85F9-70C99BE08B19}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.MetadataIndexer", "CovidDataLake.MetadataIndexer\CovidDataLake.MetadataIndexer.csproj", "{21C0755E-CEF9-4348-85F9-70C99BE08B19}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Common", "CovidDataLake.Common\CovidDataLake.Common.csproj", "{71D8C1D6-8FC8-41B8-ADA7-6A2BB8ABF7E3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,14 +54,14 @@ Global
 		{F209A20C-F6DC-417F-AB2C-8835137C1445}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F209A20C-F6DC-417F-AB2C-8835137C1445}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F209A20C-F6DC-417F-AB2C-8835137C1445}.Release|Any CPU.Build.0 = Release|Any CPU
-		{808BF9F2-C42C-4982-AA03-C4AA9E1C94C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{808BF9F2-C42C-4982-AA03-C4AA9E1C94C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{808BF9F2-C42C-4982-AA03-C4AA9E1C94C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{808BF9F2-C42C-4982-AA03-C4AA9E1C94C3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{21C0755E-CEF9-4348-85F9-70C99BE08B19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{21C0755E-CEF9-4348-85F9-70C99BE08B19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21C0755E-CEF9-4348-85F9-70C99BE08B19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21C0755E-CEF9-4348-85F9-70C99BE08B19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71D8C1D6-8FC8-41B8-ADA7-6A2BB8ABF7E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71D8C1D6-8FC8-41B8-ADA7-6A2BB8ABF7E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71D8C1D6-8FC8-41B8-ADA7-6A2BB8ABF7E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71D8C1D6-8FC8-41B8-ADA7-6A2BB8ABF7E3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

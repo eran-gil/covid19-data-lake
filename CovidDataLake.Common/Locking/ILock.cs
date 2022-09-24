@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CovidDataLake.Common.Locking
+﻿namespace CovidDataLake.Common.Locking
 {
     public interface ILock
     {

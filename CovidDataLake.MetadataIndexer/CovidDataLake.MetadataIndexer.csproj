@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CovidDataLake.Cloud\CovidDataLake.Cloud.csproj" />
+    <ProjectReference Include="..\CovidDataLake.Common\CovidDataLake.Common.csproj" />
     <ProjectReference Include="..\CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj" />
     <ProjectReference Include="..\CovidDataLake.Storage\CovidDataLake.Storage.csproj" />
   </ItemGroup>
