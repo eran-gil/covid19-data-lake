@@ -66,6 +66,7 @@ namespace CovidDataLake.WebApi
                 builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddProvider(new Log4NetProvider("log4net.config"));
             });
+            services.AddControllers();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -85,9 +86,13 @@ namespace CovidDataLake.WebApi
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
 
             app.UseSwagger();
-
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("../swagger/v1/swagger.json", "COVID-19 Data Lake");
