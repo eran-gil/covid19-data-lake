@@ -67,7 +67,9 @@ namespace CovidDataLake.Queries.Executors
         private async Task<IEnumerable<QueryResult>> GetFilesMatchingCondition(NeedleInHaystackColumnCondition condition)
         {
             var defaultResult = Enumerable.Empty<QueryResult>();
+            await _rootIndexAccess.EnterBatch();
             var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(condition.ColumnName, condition.Value);
+            await _rootIndexAccess.ExitBatch();
             if (indexFileName == CommonKeys.END_OF_INDEX_FLAG)
             {
                 return defaultResult;
@@ -102,8 +104,7 @@ namespace CovidDataLake.Queries.Executors
         private static IndexValueModel GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,
             IndexMetadataSectionModel relevantSection, long endOffset)
         {
-            indexFile.Seek(relevantSection.Offset, SeekOrigin.Begin);
-            var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(endOffset);
+            var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(relevantSection.Offset, endOffset);
             var indexRow = indexRows.FirstOrDefault(row => row.Value.Equals(condition.Value));
             return indexRow;
         }
@@ -118,8 +119,7 @@ namespace CovidDataLake.Queries.Executors
         private static Tuple<IndexMetadataSectionModel, long> GetRelevantSectionInIndex(FileStream indexFile, NeedleInHaystackColumnCondition condition,
             long metadataOffset, long bloomOffset)
         {
-            indexFile.Seek(metadataOffset, SeekOrigin.Begin);
-            var metadataRows = indexFile.GetDeserializedRowsFromFileAsync<IndexMetadataSectionModel>(bloomOffset);
+            var metadataRows = indexFile.GetDeserializedRowsFromFileAsync<IndexMetadataSectionModel>(metadataOffset, bloomOffset);
             var relevantSection = default(IndexMetadataSectionModel);
             var endOffset = metadataOffset;
             foreach (var metadataRow in metadataRows)

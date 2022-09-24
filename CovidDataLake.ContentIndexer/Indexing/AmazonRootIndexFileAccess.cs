@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -208,7 +208,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var rows = Enumerable.Empty<RootIndexRow>();
             if (indexFile != null)
             {
-                rows = indexFile.GetDeserializedRowsFromFileAsync<RootIndexRow>(indexFile.Length);
+                rows = indexFile.GetDeserializedRowsFromFileAsync<RootIndexRow>(0, indexFile.Length);
             }
             return rows;
         }

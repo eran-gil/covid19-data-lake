@@ -55,8 +55,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             inputFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = inputFile.ReadBinaryLongFromStream();
-            inputFile.Seek(0, SeekOrigin.Begin);
-            var rows = inputFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(metadataOffset);
+            var rows = inputFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(0, metadataOffset);
             return rows;
         }
 

@@ -9,10 +9,16 @@ namespace CovidDataLake.ContentIndexer.Extensions
 {
     public static class StreamExtensions
     {
-        public static IEnumerable<T> GetDeserializedRowsFromFileAsync<T>(this FileStream file, long offsetLimit)
+        public static IEnumerable<T> GetDeserializedRowsFromFileAsync<T>(this FileStream file, long beginOffset, long offsetLimit)
         {
-            using var streamReader = new StreamReader(file, Encoding.Default, true, 1024, true);
-            while (file.Position < offsetLimit)
+            var readLength = (int) offsetLimit - beginOffset;
+            var buffer = new byte[readLength];
+            file.Seek(beginOffset, SeekOrigin.Begin);
+            // ReSharper disable once MustUseReturnValue
+            file.Read(buffer);
+            using var rawDataStream = new MemoryStream(buffer);
+            using var streamReader = new StreamReader(rawDataStream);
+            while (!streamReader.EndOfStream)
             {
                 var currentLine = streamReader.ReadLine();
                 var currentValue = JSON.Deserialize<T>(currentLine);
