@@ -1,9 +1,9 @@
 ﻿using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Common;
+using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.MetadataIndexer.Indexing.Configuration;
-using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.MetadataIndexer.Indexing
 {

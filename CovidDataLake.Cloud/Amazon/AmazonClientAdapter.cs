@@ -1,9 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -19,7 +14,7 @@ namespace CovidDataLake.Cloud.Amazon
         {
             _awsClient = new AmazonS3Client(credentials, config);
         }
-        public async Task UploadObjectAsync(string bucketName, string objectKey, string sourceFilename)
+        public async Task UploadObjectAsync(string? bucketName, string objectKey, string sourceFilename)
         {
             var putObjectRequest = new PutObjectRequest()
             {
@@ -34,7 +29,7 @@ namespace CovidDataLake.Cloud.Amazon
             }
         }
 
-        public async Task<string> DownloadObjectAsync(string bucketName, string objectKey)
+        public async Task<string> DownloadObjectAsync(string? bucketName, string objectKey)
         {
             var fileType = objectKey.Split('.').LastOrDefault();
             if (!string.IsNullOrEmpty(fileType))
@@ -57,7 +52,7 @@ namespace CovidDataLake.Cloud.Amazon
                 return downloadedFilePath;
             }
             
-            catch (AmazonS3Exception e)
+            catch (AmazonS3Exception? e)
             {
                 if (e.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -68,7 +63,7 @@ namespace CovidDataLake.Cloud.Amazon
             }
         }
 
-        public async Task<bool> ObjectExistsAsync(string bucketName, string objectKey)
+        public async Task<bool> ObjectExistsAsync(string? bucketName, string objectKey)
         {
             var request = new GetObjectMetadataRequest { BucketName = bucketName, Key = objectKey };
             try
@@ -83,14 +78,14 @@ namespace CovidDataLake.Cloud.Amazon
 
         }
 
-        public async Task DeleteObjectAsync(string bucketName, string objectKey)
+        public async Task DeleteObjectAsync(string? bucketName, string objectKey)
         {
             await _awsClient.DeleteObjectAsync(bucketName, objectKey);
         }
 
         public void Dispose()
         {
-            _awsClient?.Dispose();
+            _awsClient.Dispose();
         }
     }
 }

@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace CovidDataLake.Common
+﻿namespace CovidDataLake.Common
 {
     public static class EnumerableExtensions
     {

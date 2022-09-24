@@ -1,7 +1,4 @@
-﻿using System.IO;
-using System.Threading.Tasks;
-
-namespace CovidDataLake.Storage.Write
+﻿namespace CovidDataLake.Cloud
 {
     public interface IDataLakeWriter
     {

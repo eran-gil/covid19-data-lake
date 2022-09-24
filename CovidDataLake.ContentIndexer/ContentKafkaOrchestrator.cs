@@ -5,13 +5,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Common.Files;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
-using CovidDataLake.Storage.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.ContentIndexer

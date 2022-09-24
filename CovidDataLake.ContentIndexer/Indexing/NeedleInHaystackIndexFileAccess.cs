@@ -9,7 +9,6 @@ using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
-using CovidDataLake.Storage.Utils;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {

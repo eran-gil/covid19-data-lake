@@ -1,5 +1,4 @@
-﻿using System.IO;
-using CardinalityEstimation;
+﻿using CardinalityEstimation;
 
 namespace CovidDataLake.Common.Probabilistic
 {

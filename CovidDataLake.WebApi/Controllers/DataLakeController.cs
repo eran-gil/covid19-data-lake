@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
+using CovidDataLake.Cloud;
+using CovidDataLake.Common.Files;
 using CovidDataLake.Pubsub.Kafka.Producer;
-using CovidDataLake.Storage.Utils;
-using CovidDataLake.Storage.Write;
 using CovidDataLake.WebApi.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -37,7 +37,7 @@ namespace CovidDataLake.WebApi.Controllers
             }
 
             var outputFilepath = _dataLakeWriter.GenerateFilePath(fileType);
-            using (var stream = _dataLakeWriter.CreateFileStream(outputFilepath))
+            await using (var stream = _dataLakeWriter.CreateFileStream(outputFilepath))
             {
                 try
                 {

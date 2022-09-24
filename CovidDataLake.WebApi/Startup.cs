@@ -1,7 +1,9 @@
 ﻿using Amazon.Runtime;
 using Amazon.S3;
+using CovidDataLake.Cloud;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Cloud.Amazon.Upload;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
@@ -9,7 +11,6 @@ using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Producer;
 using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 using CovidDataLake.Queries.Executors;
-using CovidDataLake.Storage.Write;
 using CovidDataLake.WebApi.Validation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -36,7 +37,6 @@ namespace CovidDataLake.WebApi
         {
             services.AddMvc();
             services.BindConfigurationToContainer<KafkaProducerConfiguration>(Configuration, "Kafka");
-            services.BindConfigurationToContainer<DataLakeWriterConfiguration>(Configuration, "Storage");
             services.BindConfigurationToContainer<FileTypeValidationConfiguration>(Configuration, "Validation");
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
             services.BindConfigurationToContainer<RedisIndexCacheConfiguration>(Configuration, "RedisIndexCache");

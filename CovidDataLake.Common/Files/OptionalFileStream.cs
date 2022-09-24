@@ -6,11 +6,11 @@ namespace CovidDataLake.Common.Files
     {
         private readonly string _filename;
         private readonly bool _shouldDelete;
-        public FileStream BaseStream { get; }
+        public FileStream? BaseStream { get; }
         private const int MinutesCacheTTL = 5;
         private static readonly MemoryCache ValidFilesMemoryCache = new(new MemoryCacheOptions());
         
-        private OptionalFileStream(FileStream baseStream, string filename, bool shouldDelete)
+        private OptionalFileStream(FileStream? baseStream, string filename, bool shouldDelete)
         {
             _filename = filename;
             _shouldDelete = shouldDelete;

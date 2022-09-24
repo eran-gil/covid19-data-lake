@@ -9,9 +9,9 @@ namespace CovidDataLake.MetadataIndexer.Indexing
         private readonly ILock _fileLock;
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly TimeSpan _lockTimeSpan;
-        private readonly string _bucketName;
+        private readonly string? _bucketName;
 
-        protected ProbabilisticMetadataIndexerBase(ILock fileLock, IAmazonAdapter amazonAdapter, TimeSpan lockTimeSpan, string bucketName)
+        protected ProbabilisticMetadataIndexerBase(ILock fileLock, IAmazonAdapter amazonAdapter, TimeSpan lockTimeSpan, string? bucketName)
         {
             _fileLock = fileLock;
             _amazonAdapter = amazonAdapter;

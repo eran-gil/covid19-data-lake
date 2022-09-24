@@ -16,7 +16,7 @@ namespace CovidDataLake.MetadataIndexer
         private readonly IEnumerable<IMetadataIndexer> _indexers;
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly ILogger<MetadataKafkaOrchestrator> _logger;
-        private readonly string _bucketName;
+        private readonly string? _bucketName;
 
         public MetadataKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IMetadataExtractor> extractors,
             IEnumerable<IMetadataIndexer> indexers, IAmazonAdapter amazonAdapter,
