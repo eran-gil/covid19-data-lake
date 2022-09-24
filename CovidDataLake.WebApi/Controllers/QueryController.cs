@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CovidDataLake.Queries.Exceptions;
 using CovidDataLake.Queries.Executors;
@@ -9,6 +10,7 @@ using CovidDataLake.Queries.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 namespace CovidDataLake.WebApi.Controllers
 {
@@ -34,7 +36,7 @@ namespace CovidDataLake.WebApi.Controllers
 
         [HttpPost]
         public async Task<ActionResult<IEnumerable<QueryResult>>> Post([BindRequired][FromQuery(Name = "queryType")] string queryType,
-             [BindRequired][FromBody] object queryBody)
+             [BindRequired][FromBody] JsonDocument queryBody)
         {
             var querySession = Guid.NewGuid();
             var loggingProperties =
@@ -47,18 +49,12 @@ namespace CovidDataLake.WebApi.Controllers
                 return BadRequest($"Invalid query type {queryType}");
             }
 
-            string body;
-            Request.Body.Seek(0, SeekOrigin.Begin);
-            using (var reader = new StreamReader(Request.Body))
-            {
-                body = await reader.ReadToEndAsync();
-            }
 
             ObjectResult result;
             var resultCount = 0;
             try
             {
-                var results = (await relevantQueryExecutor.ExecuteFromString(body)).ToList();
+                var results = (await relevantQueryExecutor.ExecuteFromString(queryBody)).ToList();
                 resultCount = results.Count;
                 result = Ok(results);
             }

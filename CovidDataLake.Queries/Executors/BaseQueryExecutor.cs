@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Queries.Exceptions;
 using CovidDataLake.Queries.Models;
-using Jil;
 
 namespace CovidDataLake.Queries.Executors
 {
@@ -20,12 +20,12 @@ namespace CovidDataLake.Queries.Executors
             _bucketName = config.BucketName;
         }
 
-        public async Task<IEnumerable<QueryResult>> ExecuteFromString(string query)
+        public async Task<IEnumerable<QueryResult>> ExecuteFromString(JsonDocument query)
         {
             T queryObject;
             try
             {
-                queryObject = JSON.Deserialize<T>(query);
+                queryObject = query.Deserialize<T>();
             }
             catch (Exception)
             {
