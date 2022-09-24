@@ -32,7 +32,9 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(configuration, "AmazonRootIndex");
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<NeedleInHaystackIndexConfiguration>(configuration, "NeedleInHaystackIndex");
-            serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
+            var storageConfig = configuration.GetSection("AmazonGeneralConfig").Get<AmazonStorageConfig>();
+            var amazonS3Config = new AmazonS3Config { ServiceURL = storageConfig.ServiceUrl };
+            serviceCollection.AddSingleton(amazonS3Config);
             serviceCollection.BindConfigurationToContainer<BatchOrchestratorConfiguration>(configuration, "BatchConfig");
             var redisConnectionString = configuration.GetValue<string>("Redis");
             var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);

@@ -38,11 +38,13 @@ namespace CovidDataLake.WebApi
             services.BindConfigurationToContainer<KafkaProducerConfiguration>(Configuration, "Kafka");
             services.BindConfigurationToContainer<DataLakeWriterConfiguration>(Configuration, "Storage");
             services.BindConfigurationToContainer<FileTypeValidationConfiguration>(Configuration, "Validation");
-            services.BindConfigurationToContainer<AmazonS3Config>(Configuration, "AmazonGeneralConfig");
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
             services.BindConfigurationToContainer<RedisIndexCacheConfiguration>(Configuration, "RedisIndexCache");
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
             services.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(Configuration, "AmazonIndexFile");
+            var storageConfig = Configuration.GetSection("AmazonGeneralConfig").Get<AmazonStorageConfig>();
+            var amazonS3Config = new AmazonS3Config { ServiceURL = storageConfig.ServiceUrl };
+            services.AddSingleton(amazonS3Config);
             var redisConnectionString = Configuration.GetValue<string>("Redis");
             var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
             services.AddSingleton<IConnectionMultiplexer>(redisConnection);

@@ -30,7 +30,9 @@ namespace CovidDataLake.MetadataIndexer
             serviceCollection.BindConfigurationToContainer<MetadataExtractorConfiguration>(configuration, "MetadataExtraction");
             serviceCollection.BindConfigurationToContainer<HyperLogLogMetadataIndexConfiguration>(configuration, "HyperLogLog");
             serviceCollection.BindConfigurationToContainer<CountMinSketchMetadataIndexConfiguration>(configuration, "CountMinSketch");
-            serviceCollection.BindConfigurationToContainer<AmazonS3Config>(configuration, "AmazonGeneralConfig");
+            var storageConfig = configuration.GetSection("AmazonGeneralConfig").Get<AmazonStorageConfig>();
+            var amazonS3Config = new AmazonS3Config { ServiceURL = storageConfig.ServiceUrl };
+            serviceCollection.AddSingleton(amazonS3Config);
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.BindConfigurationToContainer<BatchOrchestratorConfiguration>(configuration, "BatchConfig");
             serviceCollection.AddSingleton<IMetadataExtractor, TikaMetadataExtractor>();
