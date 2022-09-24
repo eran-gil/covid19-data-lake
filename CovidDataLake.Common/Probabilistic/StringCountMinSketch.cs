@@ -1,5 +1,6 @@
 ﻿using System.Runtime.Serialization.Formatters.Binary;
 using Maybe.CountMinSketch;
+#pragma warning disable SYSLIB0011
 
 namespace CovidDataLake.Common.Probabilistic
 {
