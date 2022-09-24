@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
@@ -13,6 +14,7 @@ namespace CovidDataLake.Queries.Executors
     {
         private readonly IAmazonAdapter _amazonAdapter;
         private readonly string _bucketName;
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new() { Converters = { new JsonStringEnumConverter() } };
 
         protected BaseQueryExecutor(IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration config)
         {
@@ -25,7 +27,7 @@ namespace CovidDataLake.Queries.Executors
             T queryObject;
             try
             {
-                queryObject = query.Deserialize<T>();
+                queryObject = query.Deserialize<T>(_jsonSerializerOptions);
             }
             catch (Exception)
             {
