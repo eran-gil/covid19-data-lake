@@ -45,7 +45,8 @@ namespace CovidDataLake.ContentIndexer
             await Parallel.ForEachAsync(files, async (filename, _) =>
             {
                 var tableWrapper = await GetTableWrapperForFile(filename);
-                tableWrappers.Add(tableWrapper);
+                if(tableWrapper != null)
+                    tableWrappers.Add(tableWrapper);
             });
             var filesCount = tableWrappers.Count;
             _logger.LogInformation("ingestion-start");
@@ -62,9 +63,12 @@ namespace CovidDataLake.ContentIndexer
         {
             var fileType = originFilename.GetExtensionFromPath();
             var tableWrapperFactory =
-                _tableWrapperFactories.First(extractor => extractor.IsFileTypeSupported(fileType));
+                _tableWrapperFactories.FirstOrDefault(extractor => extractor.IsFileTypeSupported(fileType));
+            if (tableWrapperFactory == null)
+            {
+                return null;
+            }
             var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, originFilename);
-            //todo: add handling of no available
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName, originFilename);
             return tableWrapper;
         }
