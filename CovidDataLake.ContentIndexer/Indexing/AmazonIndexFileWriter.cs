@@ -36,15 +36,27 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
 
             var rootIndexRows = _indexFileAccess.CreateUpdatedIndexFileWithValues(downloadedFilename, values);
+            var localFileNames = new Dictionary<string, string>();
             for (var i = 0; i < rootIndexRows.Count; i++)
             {
                 var rootIndexRow = rootIndexRows[i];
                 var localFileName = rootIndexRow.FileName;
                 rootIndexRow.FileName = i == 0 ? indexFilename : CreateNewColumnIndexFileName(columnName);
-                await _amazonAdapter.UploadObjectAsync(_bucketName, rootIndexRow.FileName, localFileName);
+                localFileNames[rootIndexRow.FileName] = localFileName;
             }
 
+            await UploadIndexFiles(rootIndexRows, localFileNames);
+
             return rootIndexRows;
+        }
+
+        private async Task UploadIndexFiles(IList<RootIndexRow> rootIndexRows, Dictionary<string, string> localFileNames)
+        {
+            await Parallel.ForEachAsync(rootIndexRows, (async (row, _) =>
+            {
+                var localFileName = localFileNames[row.FileName];
+                await _amazonAdapter.UploadObjectAsync(_bucketName, row.FileName, localFileName);
+            }));
         }
 
         private static string CreateNewColumnIndexFileName(string columnName)

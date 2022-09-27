@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 
@@ -12,12 +12,14 @@ class JsonFileTableWrapper : IFileTableWrapper
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly StringWrapper _originFilename;
     private readonly List<StringWrapper> _defaultOriginFilenames;
+    private readonly JsonSerializer _serializer;
 
     public JsonFileTableWrapper(string filename, string originFilename)
     {
         Filename = filename;
         _originFilename = new StringWrapper(originFilename);
         _defaultOriginFilenames = new List<StringWrapper>{_originFilename};
+        _serializer = new JsonSerializer();
     }
     public string Filename { get; set; }
     public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
@@ -27,7 +29,7 @@ class JsonFileTableWrapper : IFileTableWrapper
             var columns = GetColumnNames();
             return columns.ToDictionary(col => col, GetColumnValues);
         }
-        catch (Exception ex)
+        catch
         {
             return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
         }
@@ -50,9 +52,8 @@ class JsonFileTableWrapper : IFileTableWrapper
         return columns;
     }
 
-    private static IEnumerable<Dictionary<string, object>> GetItems(JsonReader reader)
+    private IEnumerable<Dictionary<string, string>> GetItems(JsonReader reader)
     {
-        var serializer = new JsonSerializer();
         while (reader.Read())
         {
             if (reader.TokenType != JsonToken.StartObject)
@@ -60,8 +61,21 @@ class JsonFileTableWrapper : IFileTableWrapper
                 continue;
             }
 
-            var currentItem = serializer.Deserialize<Dictionary<string, object>>(reader);
-            yield return currentItem;
+            var currentItem = _serializer.Deserialize<JObject>(reader);
+            Dictionary<string, string> convertedItem;
+            try
+            {
+                convertedItem = currentItem?.ToObject<Dictionary<string, string>>();
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (convertedItem != null)
+            {
+                yield return convertedItem;
+            }
 
         }
     }
@@ -80,7 +94,7 @@ class JsonFileTableWrapper : IFileTableWrapper
                 continue;
             }
 
-            var value = item[columnName]?.ToString();
+            var value = item[columnName];
             if (value == null || values.Contains(value))
             {
                 continue;

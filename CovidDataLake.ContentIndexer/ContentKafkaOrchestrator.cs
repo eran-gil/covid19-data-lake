@@ -53,8 +53,8 @@ namespace CovidDataLake.ContentIndexer
                     ["FilesCount"] = filesCount,
                     ["TotalSize"] = filesTotalSize
                 };
-            _logger.LogInformation("ingestion-start");
             using var scope = _logger.BeginScope(loggingProperties);
+            _logger.LogInformation("ingestion-start");
             await _contentIndexer.IndexTableAsync(tableWrappers);
             _logger.LogInformation("ingestion-end");
 
