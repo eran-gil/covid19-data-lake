@@ -22,6 +22,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Common", "Cov
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CovidDataLake.Cloud", "CovidDataLake.Cloud\CovidDataLake.Cloud.csproj", "{55AE914D-2CE7-48A7-9287-CF28046B143D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CovidDataLake.Scripts", "CovidDatalake.Scripts\CovidDataLake.Scripts.csproj", "{4BA4D74E-8338-4D07-827E-CF264571D10C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{55AE914D-2CE7-48A7-9287-CF28046B143D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55AE914D-2CE7-48A7-9287-CF28046B143D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55AE914D-2CE7-48A7-9287-CF28046B143D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BA4D74E-8338-4D07-827E-CF264571D10C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BA4D74E-8338-4D07-827E-CF264571D10C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BA4D74E-8338-4D07-827E-CF264571D10C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BA4D74E-8338-4D07-827E-CF264571D10C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

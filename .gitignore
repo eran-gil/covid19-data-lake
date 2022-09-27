@@ -364,3 +364,5 @@ Scripts/log.json
 Scripts/queries.csv
 
 CovidDataLake.MetadataIndexer/Properties/launchSettings.json
+
+CovidDatalake.Scripts/Properties/launchSettings.json

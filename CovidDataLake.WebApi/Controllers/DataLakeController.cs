@@ -42,6 +42,7 @@ namespace CovidDataLake.WebApi.Controllers
                 try
                 {
                     await Request.Body.CopyToAsync(stream);
+                    stream.Close();
                 }
                 catch (Exception e)
                 {

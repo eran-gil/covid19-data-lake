@@ -1,4 +1,5 @@
 ﻿using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Cloud.Amazon.Utils;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 
@@ -17,10 +18,7 @@ namespace CovidDataLake.Cloud.Amazon.Upload
 
         public string GenerateFilePath(string fileType)
         {
-            var today = DateTime.Today;
-            var path = $"{CommonKeys.CONTENT_FOLDER_NAME}/{today.Year}/{today.Month}/{today.Day}";
-            var filename = Guid.NewGuid().ToString();
-            return $"{path}/{filename}{fileType}";
+            return FilePathGeneration.GenerateFilePath(fileType);
         }
 
         public Stream CreateFileStream(string filepath)
