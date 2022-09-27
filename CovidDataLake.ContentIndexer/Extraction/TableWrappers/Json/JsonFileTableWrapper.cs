@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CovidDataLake.ContentIndexer.Extraction.Models;
-using Jil;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Json;
 
@@ -38,11 +38,9 @@ class JsonFileTableWrapper : IFileTableWrapper
     {
         using var fileStream = File.OpenRead(Filename);
         using var reader = new StreamReader(fileStream);
+        using var jsonReader = new JsonTextReader(reader);
         var columns = new HashSet<string>();
-        var firstChar = (char)reader.Read();
-        reader.DiscardBufferedData();
-        fileStream.Seek(0, SeekOrigin.Begin);
-        var items = firstChar == '[' ? GetItemsByArray(reader) : GetItemsByRow(reader);
+        var items = GetItems(jsonReader);
 
         foreach (var item in items)
         {
@@ -52,18 +50,19 @@ class JsonFileTableWrapper : IFileTableWrapper
         return columns;
     }
 
-    private static IEnumerable<Dictionary<string, object>> GetItemsByArray(StreamReader reader)
+    private static IEnumerable<Dictionary<string, object>> GetItems(JsonReader reader)
     {
-        return JSON.Deserialize<List<Dictionary<string, object>>>(reader.ReadToEnd());
-    }
-
-    private static IEnumerable<Dictionary<string, object>> GetItemsByRow(StreamReader reader)
-    {
-        while (!reader.EndOfStream)
+        var serializer = new JsonSerializer();
+        while (reader.Read())
         {
-            var line = reader.ReadLine();
-            var currentItem = JSON.Deserialize<Dictionary<string, object>>(line);
+            if (reader.TokenType != JsonToken.StartObject)
+            {
+                continue;
+            }
+
+            var currentItem = serializer.Deserialize<Dictionary<string, object>>(reader);
             yield return currentItem;
+
         }
     }
 
@@ -71,11 +70,9 @@ class JsonFileTableWrapper : IFileTableWrapper
     {
         using var fileStream = File.OpenRead(Filename);
         using var reader = new StreamReader(fileStream);
+        using var jsonReader = new JsonTextReader(reader);
         var values = new HashSet<string>();
-        var firstChar = (char)reader.Read();
-        reader.DiscardBufferedData();
-        fileStream.Seek(0, SeekOrigin.Begin);
-        var items = firstChar == '[' ? GetItemsByArray(reader) : GetItemsByRow(reader);
+        var items = GetItems(jsonReader);
         foreach (var item in items)
         {
             if (!item.ContainsKey(columnName))
@@ -83,8 +80,8 @@ class JsonFileTableWrapper : IFileTableWrapper
                 continue;
             }
 
-            var value = item[columnName].ToString();
-            if (values.Contains(value))
+            var value = item[columnName]?.ToString();
+            if (value == null || values.Contains(value))
             {
                 continue;
             }
