@@ -38,9 +38,6 @@ namespace CovidDataLake.ContentIndexer
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var loggingProperties =
-                new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Content" };
-            using var scope = _logger.BeginScope(loggingProperties);
             var tableWrappers = new ConcurrentBag<IFileTableWrapper>();
             await Parallel.ForEachAsync(files, async (filename, _) =>
             {
@@ -49,12 +46,16 @@ namespace CovidDataLake.ContentIndexer
                     tableWrappers.Add(tableWrapper);
             });
             var filesCount = tableWrappers.Count;
+            var filesTotalSize = tableWrappers.Sum(tableWrapper => tableWrapper.Filename.GetFileLength());
+            var loggingProperties =
+                new Dictionary<string, object> { ["IngestionId"] = batchGuid,
+                    ["IngestionType"] = "Content",
+                    ["FilesCount"] = filesCount,
+                    ["TotalSize"] = filesTotalSize
+                };
             _logger.LogInformation("ingestion-start");
-
+            using var scope = _logger.BeginScope(loggingProperties);
             await _contentIndexer.IndexTableAsync(tableWrappers);
-            var filesLoggingProperties =
-                new Dictionary<string, object> { ["FilesCount"] = filesCount };
-            using var filesScope = _logger.BeginScope(filesLoggingProperties);
             _logger.LogInformation("ingestion-end");
 
         }

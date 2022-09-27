@@ -19,7 +19,7 @@ namespace CovidDataLake.Scripts
             var configuration = BuildConfiguration(args);
             var serviceProvider = CreateServiceProvider(configuration);
             var runner = serviceProvider.GetService<IScriptRunner>();
-            runner.Run();
+            runner?.Run();
         }
 
         private static ServiceProvider CreateServiceProvider(IConfiguration configuration)

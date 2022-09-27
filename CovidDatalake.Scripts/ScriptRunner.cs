@@ -30,8 +30,8 @@ namespace CovidDataLake.Scripts
                 }
                 var action = _actionsDictionary[selectedAction!];
                 action.Run();
-
             }
+            // ReSharper disable once FunctionNeverReturns
         }
     }
 }

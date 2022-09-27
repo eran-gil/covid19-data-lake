@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Common.Files;
 using CovidDataLake.MetadataIndexer.Extraction;
 using CovidDataLake.MetadataIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
@@ -33,15 +34,22 @@ namespace CovidDataLake.MetadataIndexer
         protected override async Task HandleMessages(IEnumerable<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var loggingProperties =
-                new Dictionary<string, object> { ["IngestionId"] = batchGuid, ["IngestionType"] = "Metadata" };
-            using var scope = _logger.BeginScope(loggingProperties);
+            
             var downloadedFiles = new ConcurrentBag<string>();
             await Parallel.ForEachAsync(files, async (file, _) =>
             {
                 var downloadedFile = await DownloadFile(file);
                 downloadedFiles.Add(downloadedFile);
             });
+            var filesCount = downloadedFiles.Count;
+            var totalFilesLength = downloadedFiles.Sum(file => file.GetFileLength());
+            var loggingProperties =
+                new Dictionary<string, object> { ["IngestionId"] = batchGuid,
+                    ["IngestionType"] = "Metadata",
+                    ["FilesCount"] = filesCount,
+                    ["TotalSize"] = totalFilesLength
+                };
+            using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
             var filesMetadata = downloadedFiles
                 .AsParallel()
@@ -56,13 +64,10 @@ namespace CovidDataLake.MetadataIndexer
                     group => group.Select(metadata => metadata.Value).ToList()
                 );
 
-            var filesCount = downloadedFiles.Count;
             var indexingTasks = allMetadata.SelectMany(IndexMetadataForAllIndexers);
 
             await Task.WhenAll(indexingTasks);
-            var filesLoggingProperties =
-                new Dictionary<string, object> { ["FilesCount"] = filesCount };
-            using var filesScope = _logger.BeginScope(filesLoggingProperties);
+            
             _logger.LogInformation("ingestion-end");
         }
 
