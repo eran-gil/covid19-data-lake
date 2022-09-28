@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
@@ -30,21 +31,22 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _emptyKeysCache = memoryCache;
         }
 
-#pragma warning disable CS1998
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
-#pragma warning restore CS1998
         {
             var db = _connection.GetDatabase();
-            foreach (var columnUpdate in columnMappings)
+            await Parallel.ForEachAsync(columnMappings, async (columnUpdate, token) =>
             {
-                var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
-                _lockMechanism.TakeLock(redisLockKey, _lockTimeSpan);
+                await PerformColumnUpdate(columnUpdate, db, token);
+            });
+        }
 
-                async void UpdateRowInCache(RootIndexRow row) => await UpdateRowCacheInRedis(db, row);
+        private async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, IDatabaseAsync db, CancellationToken token)
+        {
+            var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
+            _lockMechanism.TakeLock(redisLockKey, _lockTimeSpan);
 
-                columnUpdate.Rows.AsParallel().ForAll(UpdateRowInCache);
-                _lockMechanism.ReleaseLock(redisLockKey);
-            }
+            await Parallel.ForEachAsync(columnUpdate.Rows, token, async (row, _) => await UpdateRowCacheInRedis(db, row));
+            _lockMechanism.ReleaseLock(redisLockKey);
         }
 
         private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row)
