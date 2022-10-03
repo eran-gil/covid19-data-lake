@@ -28,8 +28,8 @@ namespace CovidDataLake.MetadataIndexer.Indexing
             }
 
             using var stream = File.OpenRead(indexFile);
-            var hll = new StringCountMinSketch(stream);
-            return hll;
+            var countMinSketch = new StringCountMinSketch(stream);
+            return countMinSketch;
         }
 
         protected override string WriteIndexObjectToFile(StringCountMinSketch indexObject)
