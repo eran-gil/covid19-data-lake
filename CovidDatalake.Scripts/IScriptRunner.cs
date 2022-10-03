@@ -2,5 +2,5 @@
 
 internal interface IScriptRunner
 {
-    void Run();
+    Task Run();
 }

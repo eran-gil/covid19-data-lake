@@ -14,12 +14,12 @@ namespace CovidDataLake.Scripts
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var configuration = BuildConfiguration(args);
             var serviceProvider = CreateServiceProvider(configuration);
             var runner = serviceProvider.GetService<IScriptRunner>();
-            runner?.Run();
+            await runner!.Run();
         }
 
         private static ServiceProvider CreateServiceProvider(IConfiguration configuration)

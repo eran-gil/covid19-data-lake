@@ -11,7 +11,7 @@ namespace CovidDataLake.Scripts
             _actionsDictionary = actions.ToDictionary(action => action.Name);
         }
 
-        public void Run()
+        public async Task Run()
         {
             while (true)
             {
@@ -29,7 +29,7 @@ namespace CovidDataLake.Scripts
                     continue;
                 }
                 var action = _actionsDictionary[selectedAction!];
-                action.Run();
+                await action.Run();
             }
             // ReSharper disable once FunctionNeverReturns
         }

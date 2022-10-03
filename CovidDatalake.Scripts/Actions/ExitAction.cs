@@ -3,10 +3,10 @@
     internal class ExitAction : IScriptAction
     {
         public string Name => "exit";
-        public bool Run()
+        public Task<bool> Run()
         {
             Environment.Exit(0);
-            return true;
+            return Task.FromResult(true);
         }
     }
 }

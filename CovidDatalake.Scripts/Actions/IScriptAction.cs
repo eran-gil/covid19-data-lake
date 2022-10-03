@@ -3,5 +3,5 @@
 internal interface IScriptAction
 {
     string Name { get; }
-    bool Run();
+    Task<bool> Run();
 }
