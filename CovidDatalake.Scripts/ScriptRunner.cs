@@ -15,7 +15,7 @@ namespace CovidDataLake.Scripts
         {
             while (true)
             {
-                Console.WriteLine("Please select one of the following actions:");
+                Console.WriteLine("Please select one of the following actions (by name):");
                 var index = 1;
                 foreach (var actionDefinition in _actionsDictionary)
                 {
