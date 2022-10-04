@@ -37,6 +37,7 @@ namespace CovidDataLake.Scripts
             serviceCollection.AddSingleton<AWSCredentials>(awsCredentials);
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<IScriptAction, UploadFolderAction>();
+            serviceCollection.AddSingleton<IScriptAction, IndexFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, ExitAction>();
             serviceCollection.AddSingleton<IScriptRunner, ScriptRunner>();
             serviceCollection.AddLogging(builder =>

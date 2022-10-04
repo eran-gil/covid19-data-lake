@@ -78,6 +78,26 @@ namespace CovidDataLake.Cloud.Amazon
 
         }
 
+        public async Task<IEnumerable<string>> ListObjectsAsync(string? bucketName, string path)
+        {
+            var request = new ListObjectsV2Request() { BucketName = bucketName, Prefix = path};
+            try
+            {
+                var listObjectsResponse = await _awsClient.ListObjectsV2Async(request);
+                if (listObjectsResponse.HttpStatusCode != HttpStatusCode.OK)
+                {
+                    return Enumerable.Empty<string>();
+                }
+                var objectNames = listObjectsResponse.S3Objects.Select(o => o.Key);
+                return objectNames;
+            }
+            catch
+            {
+                return Enumerable.Empty<string>();
+            }
+
+        }
+
         public async Task DeleteObjectAsync(string? bucketName, string objectKey)
         {
             await _awsClient.DeleteObjectAsync(bucketName, objectKey);
