@@ -39,7 +39,8 @@ namespace CovidDataLake.ContentIndexer
         {
             var batchGuid = Guid.NewGuid();
             var tableWrappers = new ConcurrentBag<IFileTableWrapper>();
-            await Parallel.ForEachAsync(files, async (filename, _) =>
+            var filesArray = files.ToArray();
+            await Parallel.ForEachAsync(filesArray, async (filename, _) =>
             {
                 var tableWrapper = await GetTableWrapperForFile(filename);
                 if(tableWrapper != null)
@@ -51,7 +52,8 @@ namespace CovidDataLake.ContentIndexer
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid,
                     ["IngestionType"] = "Content",
                     ["FilesCount"] = filesCount,
-                    ["TotalSize"] = filesTotalSize
+                    ["TotalSize"] = filesTotalSize,
+                    ["Files"] = filesArray.ToArray()
                 };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
