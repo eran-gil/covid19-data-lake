@@ -19,7 +19,9 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
                 GroupId = groupId,
                 ClientId = clientId,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = false
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false,
+                MaxPollIntervalMs = 60 * 60 * 1000,
             };
             _kafkaConsumer = new ConsumerBuilder<string, string>(config).Build();
         }
@@ -32,16 +34,21 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
         public async Task Consume(Func<IEnumerable<string>, Task> handleMessages, CancellationToken cancellationToken)
         {
             var consumeResults = ConsumeBatch();
-            var batch = consumeResults.Select(result => result.Message.Value);
-            
-            await handleMessages(batch);
-            foreach (var result in consumeResults)
+            var batch = consumeResults.Select(result => result.Message.Value).ToList();
+            if (!batch.Any())
             {
-                _kafkaConsumer.Commit(result);
+                return;
+            }
+            await handleMessages(batch);
+            var lastResult = consumeResults.LastOrDefault();
+            if (lastResult != null)
+            {
+                _kafkaConsumer.StoreOffset(lastResult);
+                _kafkaConsumer.Commit();
             }
         }
 
-        protected IList<ConsumeResult<string, string>> ConsumeBatch()
+        private IList<ConsumeResult<string, string>> ConsumeBatch()
         {
             var consumeResults = new List<ConsumeResult<string, string>>();
             while (true)
