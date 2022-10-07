@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CovidDataLake.Common.Locking;
-using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
@@ -14,20 +12,14 @@ namespace CovidDataLake.ContentIndexer.Indexing
     public class RedisRootIndexCache : IRootIndexCache
     {
         private readonly IConnectionMultiplexer _connection;
-        private readonly ILock _lockMechanism;
-        private readonly TimeSpan _lockTimeSpan;
         private readonly IMemoryCache _emptyKeysCache;
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
         private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
-        private const string RedisLockKeyPrefix = "ROOT_INDEX_CACHE_LOCK::";
 
-        public RedisRootIndexCache(IConnectionMultiplexer connection, ILock lockMechanism,
-            RedisIndexCacheConfiguration configuration, IMemoryCache memoryCache)
+        public RedisRootIndexCache(IConnectionMultiplexer connection, IMemoryCache memoryCache)
         {
             _connection = connection;
-            _lockMechanism = lockMechanism;
-            _lockTimeSpan = TimeSpan.FromSeconds(configuration.LockDurationInSeconds);
             _emptyKeysCache = memoryCache;
         }
 
@@ -40,10 +32,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
             });
         }
 
-        private async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, IDatabaseAsync db, CancellationToken token)
+        private static async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, IDatabaseAsync db, CancellationToken token)
         {
-            var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
-
             await Parallel.ForEachAsync(columnUpdate.Rows, token, async (row, _) => await UpdateRowCacheInRedis(db, row));
         }
 
@@ -125,11 +115,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private static string GetRedisFilesToValuesKeyForColumn(string column)
         {
             return $"{RedisFilesToValuesHashMapKey}{column}";
-        }
-
-        private static string GetRedisLockKeyForColumn(string column)
-        {
-            return $"{RedisLockKeyPrefix}{column}";
         }
     }
 }
