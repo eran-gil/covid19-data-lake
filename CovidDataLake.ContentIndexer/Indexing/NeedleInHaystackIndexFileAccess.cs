@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -41,10 +41,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
 
             var indexValueBatches = indexValues.Chunk(_maxRowsPerFile);
-            var rootIndexRows = indexValueBatches.Select(batch =>
+            var rootIndexRows = indexValueBatches.AsParallel().Select(batch =>
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-                var rootIndexRow = MergeIndexValuesToFile(batch, outputFilename);
+                var rootIndexRow = WriteIndexContentToFile(batch, outputFilename);
                 return rootIndexRow;
             }).ToList();
 
@@ -96,7 +96,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
         }
 
-        private RootIndexRow MergeIndexValuesToFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
+        private RootIndexRow WriteIndexContentToFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
         {
             using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             using var outputStreamWriter = new StreamWriter(outputFile);
