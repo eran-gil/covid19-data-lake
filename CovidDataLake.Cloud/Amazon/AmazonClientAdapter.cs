@@ -12,6 +12,7 @@ namespace CovidDataLake.Cloud.Amazon
 
         public AmazonClientAdapter(AmazonS3Config config, AWSCredentials credentials)
         {
+            config.UseAccelerateEndpoint = true;
             _awsClient = new AmazonS3Client(credentials, config);
         }
         public async Task UploadObjectAsync(string? bucketName, string objectKey, string sourceFilename)
