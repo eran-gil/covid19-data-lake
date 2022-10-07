@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Probabilistic;
@@ -42,7 +41,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
 
             var indexValueBatches = indexValues.Chunk(_maxRowsPerFile);
-            var rootIndexRows = indexValueBatches.AsParallel().AsOrdered().Select(batch =>
+            var rootIndexRows = indexValueBatches.Select(batch =>
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
                 var rootIndexRow = MergeIndexValuesToFile(batch, outputFilename);
@@ -146,8 +145,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private void AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
         {
             var bloomFilter = GetBloomFilter();
-            Parallel.ForEach(rows, row => bloomFilter.Add(row.Value));
-
+            foreach (var row in rows)
+            {
+                bloomFilter.Add(row.Value);
+            }
             bloomFilter.Serialize(outputStream);
         }
 

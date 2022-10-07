@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,7 +26,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var allColumns = tableWrappers
                 .SelectMany(wrapper => wrapper.GetColumns())
                 .GroupBy(column => column.Key)
-                .AsParallel()
                 .ToDictionary(
                     group => group.Key,
                     group => group.GetAllValues()
