@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Probabilistic;
@@ -145,10 +146,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private void AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
         {
             var bloomFilter = GetBloomFilter();
-            foreach (var row in rows)
-            {
-                bloomFilter.Add(row.Value);
-            }
+            Parallel.ForEach(rows, row => bloomFilter.Add(row.Value));
 
             bloomFilter.Serialize(outputStream);
         }

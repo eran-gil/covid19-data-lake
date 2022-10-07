@@ -43,10 +43,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, IDatabaseAsync db, CancellationToken token)
         {
             var redisLockKey = GetRedisLockKeyForColumn(columnUpdate.ColumnName);
-            _lockMechanism.TakeLock(redisLockKey, _lockTimeSpan);
 
             await Parallel.ForEachAsync(columnUpdate.Rows, token, async (row, _) => await UpdateRowCacheInRedis(db, row));
-            _lockMechanism.ReleaseLock(redisLockKey);
         }
 
         private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row)
