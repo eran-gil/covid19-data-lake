@@ -22,6 +22,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly string _rootIndexName;
         private readonly TimeSpan _lockTimeSpan;
         private string _rootIndexLocalFileName;
+        private bool _isCacheLoaded;
 
         public AmazonRootIndexFileAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism, AmazonRootIndexFileConfiguration configuration)
         {
@@ -32,12 +33,15 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _bucketName = configuration.BucketName;
             _rootIndexName = $"{CommonKeys.INDEX_FOLDER_NAME}/{CommonKeys.COLUMN_INDICES_FOLDER_NAME}/{configuration.RootIndexName}";
             _rootIndexLocalFileName = null;
+            _isCacheLoaded = false;
         }
 
         public async Task EnterBatch()
         {
             _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             _rootIndexLocalFileName = await GetOrCreateRootIndexFile();
+            await LoadIndexToCache();
+            _isCacheLoaded = true;
         }
 
         public async Task ExitBatch(bool shouldUpdate = false)
@@ -45,6 +49,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             if (shouldUpdate)
                 await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, _rootIndexLocalFileName);
             _rootIndexLocalFileName = string.Empty;
+            _isCacheLoaded = false;
             _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
         }
 
@@ -61,13 +66,12 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
         }
 
-        
 
         public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
-
+            if (_isCacheLoaded) return CommonKeys.END_OF_INDEX_FLAG;
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
@@ -98,6 +102,16 @@ namespace CovidDataLake.ContentIndexer.Indexing
             }
 
             return downloadedFileName;
+        }
+
+        private async Task LoadIndexToCache()
+        {
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
+            var indexRows = GetIndexRowsFromFile(stream);
+            var cacheUpdates = indexRows
+                .GroupBy(row => row.ColumnName)
+                .Select(group => new RootIndexColumnUpdate { ColumnName = group.Key, Rows = group.ToList() });
+            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>(cacheUpdates));
         }
 
         private async Task<string> CreateRootIndexFile()
