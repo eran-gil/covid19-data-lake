@@ -22,11 +22,13 @@ namespace CovidDataLake.Scripts.Actions
         {
             Console.WriteLine("Enter the cloud prefix for content to be indexed:");
             var path = Console.ReadLine();
-            var pathObjects = await _amazonAdapter.ListObjectsAsync(_bucketName, path!);
+            var pathObjects = (await _amazonAdapter.ListObjectsAsync(_bucketName, path!)).ToList();
             foreach (var pathObject in pathObjects)
             {
                 await _producer.SendMessage(pathObject);
             }
+
+            Console.WriteLine($"Published {pathObjects.Count} files for indexing");
             return true;
         }
     }
