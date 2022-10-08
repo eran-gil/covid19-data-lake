@@ -130,7 +130,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var rowMetadata = new FileRowMetadata(stream.Position, indexValue.Value);
                 rowsMetadata.Add(rowMetadata);
                 _serializer.Serialize(jsonWriter, indexValue);
-             //   outputStreamWriter.WriteObjectToLine(indexValue);
+                jsonWriter.WriteWhitespace(Environment.NewLine);
             }
 
             return rowsMetadata;
@@ -146,6 +146,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             foreach (var metadataSection in metadataSections)
             {
                 _serializer.Serialize(jsonWriter, metadataSection);
+                jsonWriter.WriteWhitespace(Environment.NewLine);
             }
 
             return rootIndexRow;
