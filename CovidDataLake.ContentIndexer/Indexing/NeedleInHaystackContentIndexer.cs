@@ -35,7 +35,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 return;
             }
-            var columnUpdates = new SortedSet<RootIndexColumnUpdate>();
+            var columnUpdates = new ConcurrentBag<RootIndexColumnUpdate>();
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
             await Parallel.ForEachAsync(allColumns, async (column, _) =>
@@ -44,7 +44,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     columnUpdates.Add(columnUpdate);
                 }
             );
-            await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
+            var sortedColumnUpdate = new SortedSet<RootIndexColumnUpdate>(columnUpdates);
+            await _rootIndexAccess.UpdateColumnRanges(sortedColumnUpdate);
             await _rootIndexAccess.ExitBatch(true);
         }
 

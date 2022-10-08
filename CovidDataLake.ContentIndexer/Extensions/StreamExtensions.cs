@@ -9,7 +9,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
 {
     public static class StreamExtensions
     {
-        public static IEnumerable<T> GetDeserializedRowsFromFileAsync<T>(this FileStream file, long beginOffset, long offsetLimit)
+        public static IEnumerable<T> GetDeserializedRowsFromFile<T>(this FileStream file, long beginOffset, long offsetLimit)
         {
             var readLength = (int) offsetLimit - beginOffset;
             var buffer = new byte[readLength];

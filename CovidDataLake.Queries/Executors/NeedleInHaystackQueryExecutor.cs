@@ -104,7 +104,7 @@ namespace CovidDataLake.Queries.Executors
         private static IndexValueModel GetIndexRowForCondition(NeedleInHaystackColumnCondition condition, FileStream indexFile,
             IndexMetadataSectionModel relevantSection, long endOffset)
         {
-            var indexRows = indexFile.GetDeserializedRowsFromFileAsync<IndexValueModel>(relevantSection.Offset, endOffset);
+            var indexRows = indexFile.GetDeserializedRowsFromFile<IndexValueModel>(relevantSection.Offset, endOffset);
             var indexRow = indexRows.FirstOrDefault(row => row.Value.Equals(condition.Value));
             return indexRow;
         }
@@ -119,7 +119,7 @@ namespace CovidDataLake.Queries.Executors
         private static Tuple<IndexMetadataSectionModel, long> GetRelevantSectionInIndex(FileStream indexFile, NeedleInHaystackColumnCondition condition,
             long metadataOffset, long bloomOffset)
         {
-            var metadataRows = indexFile.GetDeserializedRowsFromFileAsync<IndexMetadataSectionModel>(metadataOffset, bloomOffset);
+            var metadataRows = indexFile.GetDeserializedRowsFromFile<IndexMetadataSectionModel>(metadataOffset, bloomOffset);
             var relevantSection = default(IndexMetadataSectionModel);
             var endOffset = metadataOffset;
             foreach (var metadataRow in metadataRows)
