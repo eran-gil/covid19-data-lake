@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -65,10 +65,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 foreach (var rootIndexRow in updateResult)
                 {
                     updateResults.Add(rootIndexRow);
+                    rootIndexRow.ColumnName = columnName;
                 }
 
             });
-            updateResults.AsParallel().ForAll(row => row.ColumnName = columnName);
 
             var columnUpdate = new RootIndexColumnUpdate
             {
@@ -101,7 +101,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var (columnName, columnValues) = column;
             var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
 
-            await Parallel.ForEachAsync(columnValues, async (entry, _) =>
+            foreach (var entry in columnValues)
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
                 mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
@@ -109,7 +109,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     value.Add(entry);
                     return value;
                 });
-            });
+            }
 
             return mapping;
         }
