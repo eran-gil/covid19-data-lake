@@ -9,6 +9,7 @@ using CovidDataLake.Scripts.Actions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace CovidDataLake.Scripts
 {
@@ -31,6 +32,9 @@ namespace CovidDataLake.Scripts
             serviceCollection.AddSingleton(amazonS3Config);
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.AddSingleton<IProducerFactory, KafkaProducerFactory>();
+            var redisConnectionString = configuration.GetValue<string>("Redis");
+            var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
+            serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
             var accessKey = configuration.GetValue<string>("AWS_ACCESS_KEY_ID");
             var secretKey = configuration.GetValue<string>("AWS_SECRET_ACCESS_KEY");
             var awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
@@ -38,6 +42,7 @@ namespace CovidDataLake.Scripts
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<IScriptAction, UploadFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, IndexFolderAction>();
+            serviceCollection.AddSingleton<IScriptAction, CleanupAction>();
             serviceCollection.AddSingleton<IScriptAction, ExitAction>();
             serviceCollection.AddSingleton<IScriptRunner, ScriptRunner>();
             serviceCollection.AddLogging(builder =>
