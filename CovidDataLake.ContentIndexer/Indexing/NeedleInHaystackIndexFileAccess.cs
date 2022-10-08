@@ -11,6 +11,7 @@ using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Indexing
 {
@@ -20,6 +21,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private readonly double _bloomFilterErrorRate;
         private readonly int _bloomFilterCapacity;
         private readonly int _maxRowsPerFile;
+        private readonly JsonSerializer _serializer;
 
         public NeedleInHaystackIndexFileAccess(NeedleInHaystackIndexConfiguration configuration)
         {
@@ -27,6 +29,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _bloomFilterErrorRate = configuration.BloomFilterErrorRate;
             _bloomFilterCapacity = configuration.BloomFilterCapacity;
             _maxRowsPerFile = configuration.MaxRowsPerFile;
+            _serializer = new JsonSerializer();
+
         }
 
         public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
@@ -103,10 +107,11 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             await using var outputStreamWriter = new StreamWriter(outputFile);
-            var rowsMetadata = WriteIndexValuesToFile(indexValues, outputStreamWriter);
+            using var jsonWriter = new JsonTextWriter(outputStreamWriter);
+            var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile);
             await outputStreamWriter.FlushAsync();
             var newMetadataOffset = outputFile.Position;
-            var rootIndexRow = AddUpdatedMetadataToFile(rowsMetadata, outputStreamWriter);
+            var rootIndexRow = AddUpdatedMetadataToFile(rowsMetadata, jsonWriter);
             rootIndexRow.FileName = outputFilename;
             await outputStreamWriter.FlushAsync();
             var bloomOffset = outputFile.Position;
@@ -116,22 +121,23 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rootIndexRow;
         }
 
-        private static List<FileRowMetadata> WriteIndexValuesToFile(
-            IEnumerable<IndexValueModel> indexValues, StreamWriter outputStreamWriter)
+        private List<FileRowMetadata> WriteIndexValuesToFile(
+            IEnumerable<IndexValueModel> indexValues, JsonTextWriter jsonWriter, Stream stream)
         {
             var rowsMetadata = new List<FileRowMetadata>();
             foreach (var indexValue in indexValues)
             {
-                var rowMetadata = new FileRowMetadata(outputStreamWriter.BaseStream.Position, indexValue.Value);
+                var rowMetadata = new FileRowMetadata(stream.Position, indexValue.Value);
                 rowsMetadata.Add(rowMetadata);
-                outputStreamWriter.WriteObjectToLine(indexValue);
+                _serializer.Serialize(jsonWriter, indexValue);
+             //   outputStreamWriter.WriteObjectToLine(indexValue);
             }
 
             return rowsMetadata;
         }
 
         private RootIndexRow AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata,
-            StreamWriter outputStreamWriter)
+            JsonTextWriter jsonWriter)
         {
             var metadataSections = CreateMetadataFromRows(rowsMetadata).ToList();
             var minValue = metadataSections.First().Min;
@@ -139,7 +145,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var rootIndexRow = new RootIndexRow(null, minValue, maxValue, null);
             foreach (var metadataSection in metadataSections)
             {
-                outputStreamWriter.WriteObjectToLine(metadataSection);
+                _serializer.Serialize(jsonWriter, metadataSection);
             }
 
             return rootIndexRow;
