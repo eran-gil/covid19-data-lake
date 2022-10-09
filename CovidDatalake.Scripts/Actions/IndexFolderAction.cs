@@ -27,7 +27,7 @@ namespace CovidDataLake.Scripts.Actions
                 Console.WriteLine("An empty path is not accepted");
                 return false;
             }
-            var pathObjects = (await _amazonAdapter.ListObjectsAsync(_bucketName, path!)).ToList();
+            var pathObjects = (await _amazonAdapter.ListObjectsAsync(_bucketName, path)).ToList();
             foreach (var pathObject in pathObjects)
             {
                 await _producer.SendMessage(pathObject);
