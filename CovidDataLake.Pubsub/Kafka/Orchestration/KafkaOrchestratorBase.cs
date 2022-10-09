@@ -5,18 +5,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.Pubsub.Kafka.Orchestration
 {
     public abstract class KafkaOrchestratorBase : IOrchestrator
     {
+        private readonly ILogger<KafkaOrchestratorBase> _logger;
 
         private readonly IConsumer _consumer;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly TimeSpan _consumptionInterval;
 
-        public KafkaOrchestratorBase(IConsumerFactory consumerFactory, BatchOrchestratorConfiguration batchConfiguration)
+        protected KafkaOrchestratorBase(IConsumerFactory consumerFactory,
+            BatchOrchestratorConfiguration batchConfiguration,
+            ILogger<KafkaOrchestratorBase> logger)
         {
+            _logger = logger;
             _consumer = consumerFactory.CreateConsumer(Dns.GetHostName());
             _cancellationTokenSource = new CancellationTokenSource();
             _consumptionInterval = TimeSpan.FromSeconds(batchConfiguration.BatchIntervalInSeconds);
@@ -26,10 +31,17 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
         {
             while (true)
             {
-                await _consumer.Consume(HandleMessages, _cancellationTokenSource.Token);
+                await _consumer.Consume(LogAndHandleMessages, _cancellationTokenSource.Token);
                 Thread.Sleep(_consumptionInterval);
             }
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private async Task LogAndHandleMessages(IReadOnlyCollection<string> files)
+        {
+            _logger.LogInformation("batch-started");
+            await HandleMessages(files);
+            _logger.LogInformation("batch-ended");
         }
 
         protected abstract Task HandleMessages(IReadOnlyCollection<string> files);
