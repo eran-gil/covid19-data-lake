@@ -73,7 +73,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var allIndexValues = originalIndexValues
                 .Concat(newIndexValues)
                 .GroupBy(indexValue => indexValue.Value)
-                .AsParallel()
                 .Select(group =>
                 {
                     return group.Aggregate((a, b) =>

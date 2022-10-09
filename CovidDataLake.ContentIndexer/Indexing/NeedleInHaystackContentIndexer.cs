@@ -101,7 +101,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var (columnName, columnValues) = column;
             var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
 
-            foreach (var entry in columnValues)
+            await Parallel.ForEachAsync(columnValues, async (entry, _) =>
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
                 mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
@@ -109,7 +109,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                     value.Add(entry);
                     return value;
                 });
-            }
+            });
 
             return mapping;
         }
