@@ -7,8 +7,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IIndexFileAccess
     {
-        Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName,
-            IList<RawEntry> values
+        Task<IReadOnlyCollection<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName,
+            IEnumerable<RawEntry> values
         );
     }
 }

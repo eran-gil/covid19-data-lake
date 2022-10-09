@@ -16,7 +16,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private const string RedisKeyPrefix = "ROOT_INDEX_CACHE::";
         private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
         private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
-
+        private readonly Task<string> _nullResult = Task.FromResult(default(string));
         public RedisRootIndexCache(IConnectionMultiplexer connection, IMemoryCache memoryCache)
         {
             _connection = connection;
@@ -54,35 +54,35 @@ namespace CovidDataLake.ContentIndexer.Indexing
             await db.SortedSetAddAsync(redisSetKey, row.Max, 0);
         }
 
-        public async Task<string> GetFileNameForColumnAndValue(string column, string val)
+        public Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
             var db = _connection.GetDatabase();
             var redisSetKey = GetRedisKeyForColumn(column);
             if (_emptyKeysCache.TryGetValue(redisSetKey, out _))
             {
-                return null;
+                return _nullResult;
             }
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
-            var indexFileMaxValue = (await SafeGetSortedRange(val, db, redisSetKey)).FirstOrDefault();
+            var indexFileMaxValue = (SafeGetSortedRange(val, db, redisSetKey)).FirstOrDefault();
             if (indexFileMaxValue.IsNull)
             {
                 _emptyKeysCache.Set(redisSetKey, true, TimeSpan.FromMinutes(1));
-                return null;
+                return _nullResult;
             }
-            var indexFile = await db.HashGetAsync(redisValuesToFilesKey, indexFileMaxValue);
-            if (indexFile == default) return null;
+            var indexFile = db.HashGet(redisValuesToFilesKey, indexFileMaxValue);
+            if (indexFile == default) return _nullResult;
             var indexFileName = indexFile.ToString();
-            return indexFileName;
+            return Task.FromResult(indexFileName);
         }
 
-        private static async Task<RedisValue[]> SafeGetSortedRange(string val, IDatabaseAsync db, string redisSetKey)
+        private static IEnumerable<RedisValue> SafeGetSortedRange(string val, IDatabase db, string redisSetKey)
         {
             var attempts = 0;
             while (attempts < 5)
             {
                 try
                 {
-                    return await db.SortedSetRangeByValueAsync(redisSetKey, val, take: 1);
+                    return db.SortedSetRangeByValue(redisSetKey, val, take: 1);
                 }
                 catch
                 {

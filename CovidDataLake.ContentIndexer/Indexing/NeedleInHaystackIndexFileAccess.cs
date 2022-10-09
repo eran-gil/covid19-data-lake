@@ -33,8 +33,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         }
 
-        public async Task<IList<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IList<RawEntry> values
-        )
+        public async Task<IReadOnlyCollection<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IEnumerable<RawEntry> values)
         {
             var originalIndexValues = Enumerable.Empty<IndexValueModel>();
 
@@ -55,7 +54,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 rootIndexRows.Add(rootIndexRow);
             });
 
-            return rootIndexRows.ToList();
+            return rootIndexRows;
         }
 
         private static IEnumerable<IndexValueModel> GetIndexValuesFromFile(FileStream inputFile)
@@ -68,39 +67,23 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private static IEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
             IEnumerable<IndexValueModel> originalIndexValues,
-            IList<RawEntry> newValues)
+            IEnumerable<RawEntry> newValues)
         {
-            foreach (var indexValue in originalIndexValues)
-            {
-                if (!newValues.Any())
+            var newIndexValues = newValues.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
+            var allIndexValues = originalIndexValues
+                .Concat(newIndexValues)
+                .GroupBy(indexValue => indexValue.Value)
+                .AsParallel()
+                .Select(group =>
                 {
-                    yield return indexValue;
-                    continue;
-                }
-
-                var currentInputValue = newValues.First();
-                if (currentInputValue.Value == indexValue.Value)
-                {
-                    indexValue.AddFiles(currentInputValue.OriginFilenames);
-                    newValues.RemoveAt(0);
-                }
-
-                if (string.Compare(currentInputValue.Value, indexValue.Value, StringComparison.Ordinal) < 0)
-                {
-                    var newIndexValue = new IndexValueModel(currentInputValue.Value, currentInputValue.OriginFilenames);
-                    newValues.RemoveAt(0);
-                    yield return newIndexValue;
-                }
-
-                yield return indexValue;
-            }
-
-            if (!newValues.Any()) yield break;
-            foreach (var currentValue in newValues)
-            {
-                var newIndexValue = new IndexValueModel(currentValue.Value, currentValue.OriginFilenames);
-                yield return newIndexValue;
-            }
+                    return group.Aggregate((a, b) =>
+                    {
+                        a.AddFiles(b.Files);
+                        return a;
+                    });
+                })
+                .OrderBy(v => v.Value);
+            return allIndexValues;
         }
 
         private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)

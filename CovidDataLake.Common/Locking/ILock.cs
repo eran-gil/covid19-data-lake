@@ -2,8 +2,8 @@
 {
     public interface ILock
     {
-        void TakeLock(string lockName, TimeSpan lockExpiration);
-        void ReleaseLock(string lockName);
+        Task TakeLock(string lockName, TimeSpan lockExpiration);
+        Task ReleaseLock(string lockName);
         void ExtendLock(string lockName, TimeSpan lockExpiration);
     }
 }

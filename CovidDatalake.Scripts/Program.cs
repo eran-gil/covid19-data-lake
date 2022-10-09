@@ -47,6 +47,7 @@ namespace CovidDataLake.Scripts
             serviceCollection.AddSingleton<IScriptAction, UploadFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, IndexFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, CleanupAction>();
+            serviceCollection.AddSingleton<IScriptAction, ResetRedisAction>();
             serviceCollection.AddSingleton<IScriptAction, ResetKafkaAction>();
             serviceCollection.AddSingleton<IScriptAction, ExitAction>();
             serviceCollection.AddSingleton<IScriptRunner, ScriptRunner>();

@@ -12,6 +12,7 @@ using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
+using Jil;
 using Microsoft.Extensions.Logging;
 
 namespace CovidDataLake.ContentIndexer
@@ -53,7 +54,7 @@ namespace CovidDataLake.ContentIndexer
                     ["IngestionType"] = "Content",
                     ["FilesCount"] = filesCount,
                     ["TotalSize"] = filesTotalSize,
-                    ["Files"] = filesArray.ToArray()
+                    ["Files"] = JSON.Serialize(filesArray.ToArray()),
                 };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");

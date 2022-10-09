@@ -11,7 +11,7 @@ namespace CovidDataLake.Common.Locking
             _database = connection.GetDatabase();
         }
 
-        public void TakeLock(string lockName, TimeSpan lockExpiration)
+        public async Task TakeLock(string lockName, TimeSpan lockExpiration)
         {
             var token = GetToken();
             var lockResult = false;
@@ -19,7 +19,7 @@ namespace CovidDataLake.Common.Locking
             {
                 try
                 {
-                    lockResult = _database.LockTake(lockName, token, lockExpiration);
+                    lockResult = await _database.LockTakeAsync(lockName, token, lockExpiration);
                 }
                 catch
                 {
@@ -30,7 +30,7 @@ namespace CovidDataLake.Common.Locking
             }
         }
 
-        public void ReleaseLock(string lockName)
+        public async Task ReleaseLock(string lockName)
         {
             var token = GetToken();
 
@@ -39,7 +39,8 @@ namespace CovidDataLake.Common.Locking
             {
                 try
                 {
-                    lockResult = _database.LockRelease(lockName, token);
+                    await _database.LockReleaseAsync(lockName, token);
+                    lockResult = true;
                 }
                 catch
                 {

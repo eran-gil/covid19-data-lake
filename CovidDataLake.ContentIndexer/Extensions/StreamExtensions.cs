@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -18,6 +18,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
             file.Read(buffer);
             using var rawDataStream = new MemoryStream(buffer);
             using var streamReader = new StreamReader(rawDataStream);
+            var values = new List<T>();
             while (!streamReader.EndOfStream)
             {
                 var currentLine = streamReader.ReadLine();
@@ -27,8 +28,9 @@ namespace CovidDataLake.ContentIndexer.Extensions
                     throw new InvalidDataException("The index is not in the expected format");
                 }
 
-                yield return currentValue;
+                values.Add(currentValue);
             }
+            return values;
         }
 
         public static async Task WriteObjectToLineAsync<T>(this StreamWriter streamWriter, T indexValue)
@@ -36,13 +38,6 @@ namespace CovidDataLake.ContentIndexer.Extensions
             if (streamWriter == null) throw new ArgumentNullException(nameof(streamWriter));
             var serialized = JSON.Serialize(indexValue);
             await streamWriter.WriteLineAsync(serialized);
-        }
-
-        public static void WriteObjectToLine<T>(this StreamWriter streamWriter, T indexValue)
-        {
-            if (streamWriter == null) throw new ArgumentNullException(nameof(streamWriter));
-            var serialized = JSON.Serialize(indexValue);
-            streamWriter.WriteLine(serialized);
         }
 
         public static long ReadBinaryLongFromStream(this Stream stream)

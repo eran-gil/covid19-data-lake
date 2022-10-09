@@ -80,7 +80,8 @@ namespace CovidDataLake.Queries.Executors
             {
                 return Enumerable.Empty<QueryResult>();
             }
-            using var indexFile = File.OpenRead(downloadedFileName);
+
+            await using var indexFile = File.OpenRead(downloadedFileName);
             indexFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
             var metadataOffset = indexFile.ReadBinaryLongFromStream();
             var bloomOffset = indexFile.ReadBinaryLongFromStream();

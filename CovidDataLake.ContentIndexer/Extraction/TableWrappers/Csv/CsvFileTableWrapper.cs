@@ -49,7 +49,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             using var reader = CreateCsvReader(Filename);
             var columnValues = reader
                 .ReadColumn(columnLocation)
-                .Where(value => value != null);
+                .Where(value => !string.IsNullOrEmpty(value));
 
             var values = new HashSet<string>();
             foreach (var value in columnValues)
