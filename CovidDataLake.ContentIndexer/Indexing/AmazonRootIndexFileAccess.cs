@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -53,7 +53,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
         }
 
-        public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
+        public async Task UpdateColumnRanges(IReadOnlyCollection<RootIndexColumnUpdate> columnMappings)
         {
             await _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
@@ -62,8 +62,8 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
             await WriteIndexRowsToFile(outputFileName, outputRows);
             _rootIndexLocalFileName = outputFileName;
-            await _cache.UpdateColumnRanges(columnMappings);
             await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
+            await _cache.UpdateColumnRanges(columnMappings);
         }
 
 
@@ -142,78 +142,66 @@ namespace CovidDataLake.ContentIndexer.Indexing
             IEnumerable<RootIndexRow> indexRows,
             IEnumerable<RootIndexColumnUpdate> updates)
         {
-            var indexRowsEnumerator = indexRows.GetEnumerator();
-            var currentIndexRow = indexRowsEnumerator.Current;
-            foreach (var currentUpdate in updates)
+            var indexColumns = MapIndexToDictionary(indexRows);
+            var updateIndexColumns = MapUpdatesToDictionary(updates);
+            MergeUpdateToIndex(updateIndexColumns, indexColumns);
+            var newIndexEntries = indexColumns.SelectMany(SortFilesInColumn);
+            return newIndexEntries;
+        }
+
+        private static void MergeUpdateToIndex(Dictionary<string, Dictionary<string, List<RootIndexRow>>> updateIndexColumns, Dictionary<string, Dictionary<string, List<RootIndexRow>>> indexColumns)
+        {
+            foreach (var (columnName, fileDictionary) in updateIndexColumns)
             {
-                foreach (var updateRow in currentUpdate.Rows)
+                if (indexColumns.ContainsKey(columnName))
                 {
-                    if (currentIndexRow == null)
-                    {
-                        yield return updateRow;
-                        continue;
-                    }
-
-                    while (ShouldWriteOriginalIndexBeforeUpdate(currentIndexRow, updateRow))
-                    {
-                        yield return currentIndexRow;
-                        currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
-                    }
-
-                    if (currentIndexRow == null)
-                    {
-                        continue;
-                    }
-
-                    if (ShouldWriteUpdateBeforeOriginalIndex(currentIndexRow, updateRow))
-                    {
-                        yield return updateRow;
-                        continue;
-                    }
-
-                    if (updateRow.FileName == currentIndexRow.FileName)
-                    {
-                        currentIndexRow.Min = updateRow.Min;
-                        currentIndexRow.Max = updateRow.Max;
-                        yield return currentIndexRow;
-                        currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
-                        continue;
-                    }
-
-                    if (string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0)
-                    {
-                        yield return updateRow;
-                    }
-
+                    var indexColumn = indexColumns[columnName];
+                    MergeColumnUpdateToIndexColumn(fileDictionary, indexColumn);
+                }
+                else
+                {
+                    indexColumns[columnName] = fileDictionary;
                 }
             }
+        }
 
-            while (currentIndexRow != null)
+        private static Dictionary<string, Dictionary<string, List<RootIndexRow>>> MapUpdatesToDictionary(IEnumerable<RootIndexColumnUpdate> updates)
+        {
+            return updates
+                .ToDictionary(update => update.ColumnName, update => ToDictionaryByFileName(update.Rows));
+        }
+
+        private static Dictionary<string, Dictionary<string, List<RootIndexRow>>> MapIndexToDictionary(IEnumerable<RootIndexRow> indexRows)
+        {
+            return indexRows
+                .GroupBy(row => row.ColumnName)
+                .ToDictionary(column => column.Key, ToDictionaryByFileName);
+        }
+
+        private static IOrderedEnumerable<RootIndexRow> SortFilesInColumn(KeyValuePair<string, Dictionary<string, List<RootIndexRow>>> indexColumn)
+        {
+            return indexColumn
+                .Value
+                .SelectMany(fileEntries => fileEntries.Value)
+                .OrderBy(row => row.Min);
+        }
+
+        private static void MergeColumnUpdateToIndexColumn(Dictionary<string, List<RootIndexRow>> fileDictionary, IDictionary<string, List<RootIndexRow>> indexColumn)
+        {
+            foreach (var (fileName, entries) in fileDictionary)
             {
-                yield return currentIndexRow;
-                currentIndexRow = GetNextIndexRow(indexRowsEnumerator);
+                indexColumn[fileName] = entries;
             }
         }
 
-        private static bool ShouldWriteUpdateBeforeOriginalIndex(RootIndexRow currentIndexRow, RootIndexRow updateRow)
+        private static Dictionary<string, List<RootIndexRow>> ToDictionaryByFileName(IEnumerable<RootIndexRow> column)
         {
-            return string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName,
-                StringComparison.InvariantCulture) < 0;
-        }
-
-        private static bool ShouldWriteOriginalIndexBeforeUpdate(RootIndexRow currentIndexRow, RootIndexRow updateRow)
-        {
-            return currentIndexRow != null &&
-                   (string.Compare(currentIndexRow.ColumnName, updateRow.ColumnName, StringComparison.InvariantCulture) > 0
-                    || (currentIndexRow.FileName != updateRow.FileName
-                        && string.CompareOrdinal(currentIndexRow.Min, updateRow.Min) < 0));
-        }
-
-        private static RootIndexRow GetNextIndexRow(IEnumerator<RootIndexRow> indexRowsEnumerator)
-        {
-            var currentIndexRow = indexRowsEnumerator.MoveNext() ? null : indexRowsEnumerator.Current;
-
-            return currentIndexRow;
+            return column
+                .GroupBy(row => row.FileName)
+                .ToDictionary(
+                    file => file.Key,
+                    file => file.ToList()
+                );
         }
 
         private static IEnumerable<RootIndexRow> GetIndexRowsFromFile(OptionalFileStream stream)

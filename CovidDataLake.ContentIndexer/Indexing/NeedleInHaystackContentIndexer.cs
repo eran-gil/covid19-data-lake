@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
 using CovidDataLake.ContentIndexer.Indexing.Models;
@@ -23,30 +22,40 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task IndexTableAsync(IEnumerable<IFileTableWrapper> tableWrappers)
         {
-            var allColumns = tableWrappers
-                .SelectMany(wrapper => wrapper.GetColumns())
-                .GroupBy(column => column.Key)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.GetAllValues()
-                );
-            
-            if (!allColumns.Any())
+            var mergedColumns = MergeColumnsByName(tableWrappers);
+            if (!mergedColumns.Any())
             {
                 return;
             }
             var columnUpdates = new ConcurrentBag<RootIndexColumnUpdate>();
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
-            await Parallel.ForEachAsync(allColumns, async (column, _) =>
+            await Parallel.ForEachAsync(mergedColumns, async (column, _) =>
                 {
                     var columnUpdate = await UpdateColumnIndex(column);
                     columnUpdates.Add(columnUpdate);
                 }
             );
-            var sortedColumnUpdate = new SortedSet<RootIndexColumnUpdate>(columnUpdates);
-            await _rootIndexAccess.UpdateColumnRanges(sortedColumnUpdate);
+            await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
             await _rootIndexAccess.ExitBatch(true);
+        }
+
+        private static ConcurrentDictionary<string, IEnumerable<RawEntry>> MergeColumnsByName(IEnumerable<IFileTableWrapper> tableWrappers)
+        {
+            var unifiedColumns = new ConcurrentDictionary<string, IEnumerable<RawEntry>>();
+            var allColumns = tableWrappers
+                .SelectMany(wrapper => wrapper.GetColumns());
+
+            foreach (var column in allColumns)
+            {
+                unifiedColumns.AddOrUpdate(
+                    column.Key,
+                    column.Value,
+                    (_, current) => current.Concat(column.Value)
+                );
+            }
+
+            return unifiedColumns;
         }
 
         private async Task<RootIndexColumnUpdate> UpdateColumnIndex(KeyValuePair<string, IEnumerable<RawEntry>> column)
@@ -73,7 +82,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var columnUpdate = new RootIndexColumnUpdate
             {
                 ColumnName = columnName,
-                Rows = updateResults.ToList()
+                Rows = updateResults
             };
             return columnUpdate;
         }

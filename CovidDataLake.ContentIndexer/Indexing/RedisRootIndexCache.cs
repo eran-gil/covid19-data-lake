@@ -23,7 +23,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             _emptyKeysCache = memoryCache;
         }
 
-        public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
+        public async Task UpdateColumnRanges(IReadOnlyCollection<RootIndexColumnUpdate> columnMappings)
         {
             var db = _connection.GetDatabase();
             await Parallel.ForEachAsync(columnMappings, async (columnUpdate, token) =>

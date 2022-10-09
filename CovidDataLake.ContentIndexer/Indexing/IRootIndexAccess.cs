@@ -6,7 +6,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 {
     public interface IRootIndexAccess
     {
-        Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings);
+        Task UpdateColumnRanges(IReadOnlyCollection<RootIndexColumnUpdate> columnMappings);
         Task<string> GetFileNameForColumnAndValue(string column, string val);
         Task EnterBatch();
         Task ExitBatch(bool shouldUpdate = false);
