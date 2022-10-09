@@ -41,6 +41,7 @@ namespace CovidDataLake.Common.Files
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
             if (BaseStream == default(FileStream)) return;
             BaseStream.Dispose();
             if (_shouldDelete) File.Delete(_filename);

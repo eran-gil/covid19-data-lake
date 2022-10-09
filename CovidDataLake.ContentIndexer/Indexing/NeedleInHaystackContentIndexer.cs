@@ -27,15 +27,10 @@ namespace CovidDataLake.ContentIndexer.Indexing
             {
                 return;
             }
-            var columnUpdates = new ConcurrentBag<RootIndexColumnUpdate>();
+
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
-            await Parallel.ForEachAsync(mergedColumns, async (column, _) =>
-                {
-                    var columnUpdate = await UpdateColumnIndex(column);
-                    columnUpdates.Add(columnUpdate);
-                }
-            );
+            var columnUpdates = await UpdateAllColumns(mergedColumns);
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
             await _rootIndexAccess.ExitBatch(true);
         }
@@ -58,11 +53,51 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return unifiedColumns;
         }
 
+        private async Task<ConcurrentBag<RootIndexColumnUpdate>> UpdateAllColumns(ConcurrentDictionary<string, IEnumerable<RawEntry>> columns)
+        {
+            var columnUpdates = new ConcurrentBag<RootIndexColumnUpdate>();
+            await Parallel.ForEachAsync(columns, async (column, _) =>
+                {
+                    var columnUpdate = await UpdateColumnIndex(column);
+                    columnUpdates.Add(columnUpdate);
+                }
+            );
+            return columnUpdates;
+        }
+
         private async Task<RootIndexColumnUpdate> UpdateColumnIndex(KeyValuePair<string, IEnumerable<RawEntry>> column)
         {
             var fileMapping = await GetFileMappingForColumn(column);
             var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, fileMapping);
             return columnUpdate;
+        }
+
+        private async Task<IDictionary<string, List<RawEntry>>> GetFileMappingForColumn(KeyValuePair<string, IEnumerable<RawEntry>> column)
+        {
+            var (columnName, columnValues) = column;
+            var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
+
+            foreach (var entry in columnValues)
+            {
+                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
+                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
+                {
+                    value.Add(entry);
+                    return value;
+                });
+            }
+
+            /*await Parallel.ForEachAsync(columnValues, async (entry, _) =>
+            {
+                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
+                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
+                {
+                    value.Add(entry);
+                    return value;
+                });
+            });*/
+
+            return mapping;
         }
 
         private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string columnName, IDictionary<string, List<RawEntry>> indexFilesMapping)
@@ -103,24 +138,6 @@ namespace CovidDataLake.ContentIndexer.Indexing
         {
             v1.MergeEntries(v2);
             return v1;
-        }
-
-        private async Task<IDictionary<string, List<RawEntry>>> GetFileMappingForColumn(KeyValuePair<string, IEnumerable<RawEntry>> column)
-        {
-            var (columnName, columnValues) = column;
-            var mapping = new ConcurrentDictionary<string, List<RawEntry>>();
-
-            await Parallel.ForEachAsync(columnValues, async (entry, _) =>
-            {
-                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, entry.Value);
-                mapping.AddOrUpdate(indexFileName, new List<RawEntry> { entry }, (_, value) =>
-                {
-                    value.Add(entry);
-                    return value;
-                });
-            });
-
-            return mapping;
         }
     }
 }

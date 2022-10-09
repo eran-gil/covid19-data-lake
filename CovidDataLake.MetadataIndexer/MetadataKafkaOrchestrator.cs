@@ -22,7 +22,7 @@ namespace CovidDataLake.MetadataIndexer
         public MetadataKafkaOrchestrator(IConsumerFactory consumerFactory, IEnumerable<IMetadataExtractor> extractors,
             IEnumerable<IMetadataIndexer> indexers, IAmazonAdapter amazonAdapter,
             BasicAmazonIndexFileConfiguration amazonConfig, ILogger<MetadataKafkaOrchestrator> logger,
-            BatchOrchestratorConfiguration batchConfiguration) : base(consumerFactory, batchConfiguration)
+            BatchOrchestratorConfiguration batchConfiguration) : base(consumerFactory, batchConfiguration, logger)
         {
             _extractors = extractors;
             _indexers = indexers;
