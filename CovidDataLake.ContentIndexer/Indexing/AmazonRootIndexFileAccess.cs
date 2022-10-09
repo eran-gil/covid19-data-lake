@@ -38,7 +38,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         public async Task EnterBatch()
         {
-            _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
+            await _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
             _rootIndexLocalFileName = await GetOrCreateRootIndexFile();
             await LoadIndexToCache();
             _isCacheLoaded = true;
@@ -50,12 +50,12 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, _rootIndexLocalFileName);
             _rootIndexLocalFileName = string.Empty;
             _isCacheLoaded = false;
-            _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
+            await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
         }
 
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
-            _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
+            await _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
@@ -63,7 +63,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             await WriteIndexRowsToFile(outputFileName, outputRows);
             _rootIndexLocalFileName = outputFileName;
             await _cache.UpdateColumnRanges(columnMappings);
-            _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
+            await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
         }
 
 
