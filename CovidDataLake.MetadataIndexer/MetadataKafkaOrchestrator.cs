@@ -31,7 +31,7 @@ namespace CovidDataLake.MetadataIndexer
             _bucketName = amazonConfig.BucketName;
         }
 
-        protected override async Task HandleMessages(IEnumerable<string> files)
+        protected override async Task HandleMessages(IReadOnlyCollection<string> files)
         {
             var batchGuid = Guid.NewGuid();
             

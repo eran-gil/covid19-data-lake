@@ -32,7 +32,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
             // ReSharper disable once FunctionNeverReturns
         }
 
-        protected abstract Task HandleMessages(IEnumerable<string> files);
+        protected abstract Task HandleMessages(IReadOnlyCollection<string> files);
 
         public void Dispose()
         {

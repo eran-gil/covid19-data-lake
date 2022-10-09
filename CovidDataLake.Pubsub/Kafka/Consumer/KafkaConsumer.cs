@@ -31,7 +31,7 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
             _kafkaConsumer.Subscribe(topic);
         }
 
-        public async Task Consume(Func<IEnumerable<string>, Task> handleMessages, CancellationToken cancellationToken)
+        public async Task Consume(Func<IReadOnlyCollection<string>, Task> handleMessages, CancellationToken cancellationToken)
         {
             var consumeResults = ConsumeBatch();
             var batch = consumeResults.Select(result => result.Message.Value).ToList();
