@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -56,7 +56,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         public async Task UpdateColumnRanges(SortedSet<RootIndexColumnUpdate> columnMappings)
         {
             await _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY, _lockTimeSpan);
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
@@ -72,7 +72,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var cached = await _cache.GetFileNameForColumnAndValue(column, val);
             if (cached != null) return cached;
             if (_isCacheLoaded) return CommonKeys.END_OF_INDEX_FLAG;
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var relevantIndexRow =
                 indexRows.FirstOrDefault(row => ValidateRowWithRequest(column, val, row));
@@ -106,7 +106,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
 
         private async Task LoadIndexToCache()
         {
-            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName, false);
+            using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
             var cacheUpdates = indexRows
                 .GroupBy(row => row.ColumnName)

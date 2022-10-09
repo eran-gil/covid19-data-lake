@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
@@ -39,7 +40,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             var localFileNames = new Dictionary<string, string>();
             for (var i = 0; i < rootIndexRows.Count; i++)
             {
-                var rootIndexRow = rootIndexRows[i];
+                var rootIndexRow = rootIndexRows.ElementAt(i);
                 var localFileName = rootIndexRow.FileName;
                 rootIndexRow.FileName = i == 0 ? indexFilename : CreateNewColumnIndexFileName(columnName);
                 localFileNames[rootIndexRow.FileName] = localFileName;
@@ -50,7 +51,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
             return rootIndexRows;
         }
 
-        private async Task UploadIndexFiles(IList<RootIndexRow> rootIndexRows, Dictionary<string, string> localFileNames)
+        private async Task UploadIndexFiles(IEnumerable<RootIndexRow> rootIndexRows, Dictionary<string, string> localFileNames)
         {
             await Parallel.ForEachAsync(rootIndexRows, (async (row, _) =>
             {

@@ -17,7 +17,7 @@ namespace CovidDataLake.Common.Files
             BaseStream = baseStream;
         }
 
-        public static OptionalFileStream CreateOptionalFileReadStream(string filename, bool shouldDelete = true)
+        public static OptionalFileStream CreateOptionalFileReadStream(string filename, bool shouldDelete = false)
         {
             var stream = default(FileStream);
             if (IsFileGoodForReading(filename))
