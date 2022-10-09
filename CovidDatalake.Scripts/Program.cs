@@ -3,6 +3,8 @@ using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
+using CovidDataLake.Pubsub.Kafka.Admin;
+using CovidDataLake.Pubsub.Kafka.Admin.Configuration;
 using CovidDataLake.Pubsub.Kafka.Producer;
 using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 using CovidDataLake.Scripts.Actions;
@@ -27,11 +29,13 @@ namespace CovidDataLake.Scripts
         {
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.BindConfigurationToContainer<KafkaProducerConfiguration>(configuration, "Kafka");
+            serviceCollection.BindConfigurationToContainer<KafkaAdminClientConfiguration>(configuration, "Kafka");
             var storageConfig = configuration.GetSection("AmazonGeneralConfig").Get<AmazonStorageConfig>();
             var amazonS3Config = new AmazonS3Config { ServiceURL = storageConfig.ServiceUrl };
             serviceCollection.AddSingleton(amazonS3Config);
             serviceCollection.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(configuration, "AmazonIndexFile");
             serviceCollection.AddSingleton<IProducerFactory, KafkaProducerFactory>();
+            serviceCollection.AddSingleton<IPubSubAdminFactory, KafkaAdminClientFactory>();
             var redisConnectionString = configuration.GetValue<string>("Redis");
             var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
             serviceCollection.AddSingleton<IConnectionMultiplexer>(redisConnection);
@@ -43,6 +47,7 @@ namespace CovidDataLake.Scripts
             serviceCollection.AddSingleton<IScriptAction, UploadFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, IndexFolderAction>();
             serviceCollection.AddSingleton<IScriptAction, CleanupAction>();
+            serviceCollection.AddSingleton<IScriptAction, ResetKafkaAction>();
             serviceCollection.AddSingleton<IScriptAction, ExitAction>();
             serviceCollection.AddSingleton<IScriptRunner, ScriptRunner>();
             serviceCollection.AddLogging(builder =>

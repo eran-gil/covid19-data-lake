@@ -29,7 +29,14 @@ namespace CovidDataLake.Scripts
                     continue;
                 }
                 var action = _actionsDictionary[selectedAction!];
-                await action.Run();
+                try
+                {
+                    await action.Run();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
             }
             // ReSharper disable once FunctionNeverReturns
         }

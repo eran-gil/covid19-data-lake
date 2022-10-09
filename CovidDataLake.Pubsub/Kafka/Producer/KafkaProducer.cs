@@ -14,7 +14,7 @@ namespace CovidDataLake.Pubsub.Kafka.Producer
             var config = new ProducerConfig
             {
                 BootstrapServers = servers,
-                ClientId = clientId
+                ClientId = clientId,
             };
             _producer = new ProducerBuilder<string, string>(config).Build();
         }
