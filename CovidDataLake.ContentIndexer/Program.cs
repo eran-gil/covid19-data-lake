@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;
@@ -51,7 +51,7 @@ namespace CovidDataLake.ContentIndexer
             serviceCollection.AddSingleton<NeedleInHaystackIndexReader>();
             serviceCollection.AddSingleton<NeedleInHaystackIndexWriter>();
             serviceCollection.AddSingleton<IRootIndexAccess, AmazonRootIndexAccess>();
-            serviceCollection.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
+            serviceCollection.AddSingleton<IRootIndexCache, InMemoryRootIndexCache>();
             serviceCollection.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             serviceCollection.AddSingleton<ILock, RedisLock>();
             serviceCollection.AddLogging(builder =>

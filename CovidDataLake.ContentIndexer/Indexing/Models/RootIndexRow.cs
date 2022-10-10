@@ -1,6 +1,8 @@
-﻿namespace CovidDataLake.ContentIndexer.Indexing.Models
+﻿using System;
+
+namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
-    public class RootIndexRow
+    public class RootIndexRow : IComparable<RootIndexRow>
     {
 
         public RootIndexRow()
@@ -20,5 +22,25 @@
         public string Max { get; set; }
         public string FileName { get; set; }
 
+        public int CompareTo(RootIndexRow other)
+        {
+            if (ReferenceEquals(this, other))
+            {
+                return 0;
+            }
+
+            if (ReferenceEquals(null, other))
+            {
+                return 1;
+            }
+
+            var columnNameComparison = string.Compare(ColumnName, other.ColumnName, StringComparison.Ordinal);
+            if (columnNameComparison != 0)
+            {
+                return columnNameComparison;
+            }
+
+            return string.Compare(Max, other.Max, StringComparison.Ordinal);
+        }
     }
 }

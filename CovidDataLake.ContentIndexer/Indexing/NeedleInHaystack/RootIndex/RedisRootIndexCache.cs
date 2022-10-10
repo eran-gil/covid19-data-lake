@@ -17,41 +17,43 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         private const string RedisFilesToValuesHashMapKey = "ROOT_INDEX_CACHE_FILES_TO_VALUES_MAP::";
         private const string RedisValuesToFilesHashMapKey = "ROOT_INDEX_CACHE_VALUES_TO_FILEES_MAP::";
         private readonly Task<string> _nullResult = Task.FromResult(default(string));
+        private readonly IDatabase _db;
+
         public RedisRootIndexCache(IConnectionMultiplexer connection, IMemoryCache memoryCache)
         {
             _connection = connection;
             _emptyKeysCache = memoryCache;
+            _db = connection.GetDatabase();
         }
 
         public async Task UpdateColumnRanges(IReadOnlyCollection<RootIndexColumnUpdate> columnMappings)
         {
-            var db = _connection.GetDatabase();
             await Parallel.ForEachAsync(columnMappings, async (columnUpdate, token) =>
             {
-                await PerformColumnUpdate(columnUpdate, db, token);
+                await PerformColumnUpdate(columnUpdate, token);
             });
         }
 
-        private static async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, IDatabaseAsync db, CancellationToken token)
+        private async Task PerformColumnUpdate(RootIndexColumnUpdate columnUpdate, CancellationToken token)
         {
-            await Parallel.ForEachAsync(columnUpdate.Rows, token, async (row, _) => await UpdateRowCacheInRedis(db, row));
+            await Parallel.ForEachAsync(columnUpdate.Rows, token, UpdateRowCacheInRedis);
         }
 
-        private static async Task UpdateRowCacheInRedis(IDatabaseAsync db, RootIndexRow row)
+        private async ValueTask UpdateRowCacheInRedis(RootIndexRow row, CancellationToken token)
         {
             var redisSetKey = GetRedisKeyForColumn(row.ColumnName);
             var redisFilesToValuesKey = GetRedisFilesToValuesKeyForColumn(row.ColumnName);
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(row.ColumnName);
-            var currentMaxValue = await db.HashGetAsync(redisFilesToValuesKey, row.FileName);
+            var currentMaxValue = await _db.HashGetAsync(redisFilesToValuesKey, row.FileName);
             if (currentMaxValue != default)
             {
-                await db.HashDeleteAsync(redisValuesToFilesKey, currentMaxValue);
-                await db.SortedSetRemoveAsync(redisSetKey, currentMaxValue);
+                await _db.HashDeleteAsync(redisValuesToFilesKey, currentMaxValue);
+                await _db.SortedSetRemoveAsync(redisSetKey, currentMaxValue);
             }
 
-            await db.HashSetAsync(redisValuesToFilesKey, row.FileName, row.Max);
-            await db.HashSetAsync(redisValuesToFilesKey, row.Max, row.FileName);
-            await db.SortedSetAddAsync(redisSetKey, row.Max, 0);
+            await _db.HashSetAsync(redisValuesToFilesKey, row.FileName, row.Max);
+            await _db.HashSetAsync(redisValuesToFilesKey, row.Max, row.FileName);
+            await _db.SortedSetAddAsync(redisSetKey, row.Max, 0);
         }
 
         public Task<string> GetFileNameForColumnAndValue(string column, string val)
@@ -100,6 +102,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         public Task ExitBatch(bool shouldUpdate = false)
         {
             return Task.CompletedTask;
+        }
+
+        public async Task LoadAllEntries(IEnumerable<RootIndexRow> indexRows)
+        {
+            await Parallel.ForEachAsync(indexRows, UpdateRowCacheInRedis);
         }
 
         private static string GetRedisKeyForColumn(string column)

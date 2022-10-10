@@ -108,10 +108,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         {
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
-            var cacheUpdates = indexRows
-                .GroupBy(row => row.ColumnName)
-                .Select(group => new RootIndexColumnUpdate { ColumnName = group.Key, Rows = group.ToList() });
-            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate>(cacheUpdates));
+            await _cache.LoadAllEntries(indexRows);
         }
 
         private async Task<string> CreateRootIndexFile()

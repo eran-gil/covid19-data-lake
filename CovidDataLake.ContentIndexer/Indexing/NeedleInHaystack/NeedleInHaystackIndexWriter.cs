@@ -68,7 +68,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
             var rootIndexRows = new ConcurrentBag<RootIndexRow>();
-            await Parallel.ForEachAsync(indexValueBatches, async (batch, token) =>
+            await Parallel.ForEachAsync(indexValueBatches, async (batch, _) =>
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
                 var rootIndexRow = await WriteIndexFile(batch, outputFilename);
