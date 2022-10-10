@@ -8,8 +8,8 @@ using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Probabilistic;
 using CovidDataLake.ContentIndexer.Extensions;
-using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex;
 using CovidDataLake.Queries.Exceptions;
 using CovidDataLake.Queries.Models;
 

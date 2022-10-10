@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
-namespace CovidDataLake.ContentIndexer.Indexing
+namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
 {
     public interface IRootIndexAccess
     {

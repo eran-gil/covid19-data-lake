@@ -7,7 +7,7 @@ using CovidDataLake.Cloud.Amazon.Upload;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
-using CovidDataLake.ContentIndexer.Indexing;
+using CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex;
 using CovidDataLake.Pubsub.Kafka.Producer;
 using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 using CovidDataLake.Queries.Executors;
@@ -50,7 +50,7 @@ namespace CovidDataLake.WebApi
             services.AddSingleton<IConnectionMultiplexer>(redisConnection);
             var awsCredentials = new EnvironmentVariablesAWSCredentials();
             services.AddSingleton<AWSCredentials>(awsCredentials);
-            services.AddSingleton<IRootIndexAccess, AmazonRootIndexFileAccess>();
+            services.AddSingleton<IRootIndexAccess, AmazonRootIndexAccess>();
             services.AddSingleton<IRootIndexCache, RedisRootIndexCache>();
             services.AddSingleton<IAmazonAdapter, AmazonClientAdapter>();
             services.AddSingleton<ILock, RedisLock>();

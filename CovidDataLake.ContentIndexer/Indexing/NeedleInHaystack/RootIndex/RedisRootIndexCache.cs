@@ -7,7 +7,7 @@ using CovidDataLake.ContentIndexer.Indexing.Models;
 using Microsoft.Extensions.Caching.Memory;
 using StackExchange.Redis;
 
-namespace CovidDataLake.ContentIndexer.Indexing
+namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
 {
     public class RedisRootIndexCache : IRootIndexCache
     {
@@ -63,7 +63,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 return _nullResult;
             }
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
-            var indexFileMaxValue = (SafeGetSortedRange(val, db, redisSetKey)).FirstOrDefault();
+            var indexFileMaxValue = SafeGetSortedRange(val, db, redisSetKey).FirstOrDefault();
             if (indexFileMaxValue.IsNull)
             {
                 _emptyKeysCache.Set(redisSetKey, true, TimeSpan.FromMinutes(1));

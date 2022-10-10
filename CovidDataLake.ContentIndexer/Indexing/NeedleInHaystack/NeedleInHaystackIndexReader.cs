@@ -1,0 +1,69 @@
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Common;
+using CovidDataLake.Common.Files;
+using CovidDataLake.ContentIndexer.Extensions;
+using CovidDataLake.ContentIndexer.Indexing.Models;
+
+namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
+{
+    public class NeedleInHaystackIndexReader
+    {
+        private readonly IAmazonAdapter _amazonAdapter;
+        private readonly string _bucketName;
+
+        public NeedleInHaystackIndexReader(IAmazonAdapter amazonAdapter, BasicAmazonIndexFileConfiguration indexConfig)
+        {
+            _amazonAdapter = amazonAdapter;
+            _bucketName = indexConfig.BucketName!;
+        }
+
+        public async Task<KeyValuePair<string, string>> DownloadIndexFile(string columnName, string indexFilename)
+        {
+            var downloadedFilename =
+                NeedleInHaystackUtils.CreateNewColumnIndexFileName(columnName);
+            if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)
+            {
+                downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
+            }
+            else
+            {
+                indexFilename = downloadedFilename;
+            }
+
+            return new KeyValuePair<string, string>(indexFilename, downloadedFilename);
+        }
+
+        public static ConcurrentDictionary<string, IndexValueModel> GetIndexFromFile(string indexLocalFilename)
+        {
+            var originalIndexValues = Enumerable.Empty<IndexValueModel>();
+
+            using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(indexLocalFilename);
+            if (fileStream.BaseStream != null)
+            {
+                originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
+            }
+
+            var indexDictionary = new ConcurrentDictionary<string, IndexValueModel>();
+            Parallel.ForEach(originalIndexValues, indexValue =>
+            {
+                indexDictionary[indexValue.Value] = indexValue;
+            });
+
+            return indexDictionary;
+        }
+
+        private static IEnumerable<IndexValueModel> GetIndexValuesFromFile(FileStream inputFile)
+        {
+            inputFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
+            var metadataOffset = inputFile.ReadBinaryLongFromStream();
+            var rows = inputFile.GetDeserializedRowsFromFile<IndexValueModel>(0, metadataOffset);
+            return rows;
+        }
+    }
+}

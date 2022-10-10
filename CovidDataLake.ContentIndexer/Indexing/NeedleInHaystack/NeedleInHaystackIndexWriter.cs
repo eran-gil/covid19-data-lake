@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CovidDataLake.Cloud.Amazon;
+using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.Common.Probabilistic;
@@ -13,76 +15,66 @@ using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 using Newtonsoft.Json;
 
-namespace CovidDataLake.ContentIndexer.Indexing
+namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 {
-    public class NeedleInHaystackIndexFileAccess : IIndexFileAccess
+    public class NeedleInHaystackIndexWriter
     {
+        private readonly IAmazonAdapter _amazonAdapter;
+        private readonly NeedleInHaystackIndexReader _indexReader;
+        private readonly string _bucketName;
+        private readonly int _maxRowsPerFile;
+        private readonly JsonSerializer _serializer;
         private readonly int _numOfRowsPerMetadataSection;
         private readonly double _bloomFilterErrorRate;
         private readonly int _bloomFilterCapacity;
-        private readonly int _maxRowsPerFile;
-        private readonly JsonSerializer _serializer;
 
-        public NeedleInHaystackIndexFileAccess(NeedleInHaystackIndexConfiguration configuration)
+        public NeedleInHaystackIndexWriter(IAmazonAdapter amazonAdapter, NeedleInHaystackIndexReader indexReader, BasicAmazonIndexFileConfiguration indexConfig, NeedleInHaystackIndexConfiguration configuration)
         {
+            _amazonAdapter = amazonAdapter;
+            _indexReader = indexReader;
+            _bucketName = indexConfig.BucketName!;
             _numOfRowsPerMetadataSection = configuration.NumOfMetadataRows;
             _bloomFilterErrorRate = configuration.BloomFilterErrorRate;
             _bloomFilterCapacity = configuration.BloomFilterCapacity;
             _maxRowsPerFile = configuration.MaxRowsPerFile;
             _serializer = new JsonSerializer();
+        }
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(string columnName, string indexFilename, IEnumerable<RawEntry> values)
+        {
+            var (indexName, localFilename) = await _indexReader.DownloadIndexFile(columnName, indexFilename);
+            var indexDictionary = NeedleInHaystackIndexReader.GetIndexFromFile(localFilename);
+            var newIndexValues = values.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
 
+            Parallel.ForEach(newIndexValues, indexValue =>
+                {
+                    indexDictionary.AddOrUpdate(indexValue.Value, indexValue, (_, currentValue) =>
+                    {
+                        currentValue.AddFiles(indexValue.Files);
+                        return currentValue;
+                    });
+                }
+            );
+
+            var rootIndexRows = await WriteIndexToFiles(indexDictionary);
+            var localFileNames = OverrideLocalFileNames(indexName, columnName, rootIndexRows);
+
+            await UploadIndexFiles(rootIndexRows, localFileNames);
+
+            return rootIndexRows;
         }
 
-        public async Task<IReadOnlyCollection<RootIndexRow>> CreateUpdatedIndexFileWithValues(string sourceIndexFileName, IEnumerable<RawEntry> values)
+        private async Task<IReadOnlyCollection<RootIndexRow>> WriteIndexToFiles(ConcurrentDictionary<string, IndexValueModel> indexDictionary)
         {
-            var originalIndexValues = Enumerable.Empty<IndexValueModel>();
-
-            using var fileStream = OptionalFileStream.CreateOptionalFileReadStream(sourceIndexFileName);
-            if (fileStream.BaseStream != null)
-            {
-                originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
-            }
-
-            var indexValues = MergeIndexWithUpdatedValues(originalIndexValues, values);
-
-            var indexValueBatches = indexValues.Chunk(_maxRowsPerFile);
+            var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
+            var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
             var rootIndexRows = new ConcurrentBag<RootIndexRow>();
-            await Parallel.ForEachAsync(indexValueBatches, async (batch, _) =>
+            await Parallel.ForEachAsync(indexValueBatches, async (batch, token) =>
             {
                 var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
                 var rootIndexRow = await WriteIndexFile(batch, outputFilename);
                 rootIndexRows.Add(rootIndexRow);
             });
-
             return rootIndexRows;
-        }
-
-        private static IEnumerable<IndexValueModel> GetIndexValuesFromFile(FileStream inputFile)
-        {
-            inputFile.Seek(-(2 * sizeof(long)), SeekOrigin.End);
-            var metadataOffset = inputFile.ReadBinaryLongFromStream();
-            var rows = inputFile.GetDeserializedRowsFromFile<IndexValueModel>(0, metadataOffset);
-            return rows;
-        }
-
-        private static IEnumerable<IndexValueModel> MergeIndexWithUpdatedValues(
-            IEnumerable<IndexValueModel> originalIndexValues,
-            IEnumerable<RawEntry> newValues)
-        {
-            var newIndexValues = newValues.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
-            var allIndexValues = originalIndexValues
-                .Concat(newIndexValues)
-                .GroupBy(indexValue => indexValue.Value)
-                .Select(group =>
-                {
-                    return group.Aggregate((a, b) =>
-                    {
-                        a.AddFiles(b.Files);
-                        return a;
-                    });
-                })
-                .OrderBy(v => v.Value);
-            return allIndexValues;
         }
 
         private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
@@ -104,7 +96,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         }
 
         private List<FileRowMetadata> WriteIndexValuesToFile(
-            IEnumerable<IndexValueModel> indexValues, JsonTextWriter jsonWriter, Stream stream)
+            IEnumerable<IndexValueModel> indexValues, JsonWriter jsonWriter, Stream stream)
         {
             var rowsMetadata = new List<FileRowMetadata>();
             foreach (var indexValue in indexValues)
@@ -119,7 +111,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         }
 
         private RootIndexRow AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata,
-            JsonTextWriter jsonWriter)
+            JsonWriter jsonWriter)
         {
             var metadataSections = CreateMetadataFromRows(rowsMetadata).ToList();
             var minValue = metadataSections.First().Min;
@@ -169,6 +161,30 @@ namespace CovidDataLake.ContentIndexer.Indexing
                 var metadataSection = new IndexMetadataSectionModel(min, max, offset);
                 yield return metadataSection;
             }
+        }
+
+        private static Dictionary<string, string> OverrideLocalFileNames(string indexFilename, string columnName,
+            IReadOnlyCollection<RootIndexRow> rootIndexRows)
+        {
+            var localFileNames = new Dictionary<string, string>();
+            for (var i = 0; i < rootIndexRows.Count; i++)
+            {
+                var rootIndexRow = rootIndexRows.ElementAt(i);
+                var localFileName = rootIndexRow.FileName;
+                rootIndexRow.FileName = i == 0 ? indexFilename : NeedleInHaystackUtils.CreateNewColumnIndexFileName(columnName);
+                localFileNames[rootIndexRow.FileName] = localFileName;
+            }
+
+            return localFileNames;
+        }
+
+        private async Task UploadIndexFiles(IEnumerable<RootIndexRow> rootIndexRows, IReadOnlyDictionary<string, string> localFileNames)
+        {
+            await Parallel.ForEachAsync(rootIndexRows, async (row, _) =>
+            {
+                var localFileName = localFileNames[row.FileName];
+                await _amazonAdapter.UploadObjectAsync(_bucketName, row.FileName, localFileName);
+            });
         }
     }
 }

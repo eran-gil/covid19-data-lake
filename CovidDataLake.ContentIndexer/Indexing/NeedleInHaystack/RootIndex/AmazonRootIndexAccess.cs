@@ -11,9 +11,9 @@ using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
-namespace CovidDataLake.ContentIndexer.Indexing
+namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
 {
-    public class AmazonRootIndexFileAccess : IRootIndexFileAccess
+    public class AmazonRootIndexAccess : IRootIndexFileAccess
     {
         private readonly IRootIndexCache _cache;
         private readonly IAmazonAdapter _amazonAdapter;
@@ -24,7 +24,7 @@ namespace CovidDataLake.ContentIndexer.Indexing
         private string _rootIndexLocalFileName;
         private bool _isCacheLoaded;
 
-        public AmazonRootIndexFileAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism, AmazonRootIndexFileConfiguration configuration)
+        public AmazonRootIndexAccess(IRootIndexCache cache, IAmazonAdapter amazonAdapter, ILock lockMechanism, AmazonRootIndexFileConfiguration configuration)
         {
             _cache = cache;
             _amazonAdapter = amazonAdapter;
