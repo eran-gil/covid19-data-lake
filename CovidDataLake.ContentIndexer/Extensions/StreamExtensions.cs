@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Jil;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Extensions
 {
@@ -22,7 +23,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
             while (!streamReader.EndOfStream)
             {
                 var currentLine = streamReader.ReadLine();
-                var currentValue = JSON.Deserialize<T>(currentLine);
+                var currentValue = JsonConvert.DeserializeObject<T>(currentLine!);
                 if (currentValue == null)
                 {
                     throw new InvalidDataException("The index is not in the expected format");
