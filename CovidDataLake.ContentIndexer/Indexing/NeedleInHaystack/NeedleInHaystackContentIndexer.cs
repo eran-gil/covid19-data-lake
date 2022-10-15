@@ -39,7 +39,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         private static ConcurrentDictionary<string, IEnumerable<RawEntry>> GetAllColumns(IEnumerable<IFileTableWrapper> tableWrappers)
         {
             var unifiedColumns = new ConcurrentDictionary<string, IEnumerable<RawEntry>>();
-            var rawColumns = tableWrappers
+            var rawColumns = tableWrappers.AsParallel()
                 .SelectMany(wrapper => wrapper.GetColumns());
 
             foreach (var column in rawColumns)

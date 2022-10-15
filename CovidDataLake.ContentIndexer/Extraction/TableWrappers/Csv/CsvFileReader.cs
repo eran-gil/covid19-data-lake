@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DataAccess;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
@@ -10,20 +11,26 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         private readonly StreamReader _stream;
         private readonly string _separator;
         private bool _headerRead;
+        private readonly DataTable _dataTable;
 
         public CsvFileReader(Stream stream, string separator = ",")
         {
             _stream = new StreamReader(stream);
+            _dataTable = DataTable.New.ReadLazy(stream);
             _separator = separator;
             _headerRead = false;
         }
 
         public IList<string> ReadHeaders()
         {
-            var headerLine = _stream.ReadLine();
-            var headers = headerLine?.Split(_separator);
+            var headers = _dataTable.ColumnNames.ToList();
             _headerRead = true;
             return headers;
+        }
+
+        public IEnumerable<IList<string>> ReadLines()
+        {
+            return _dataTable.Rows.Select(row => row.Values);
         }
 
         public IEnumerable<string> ReadColumn(int index)

@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using CovidDataLake.Common;
+using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
@@ -21,55 +24,83 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
         {
-            Dictionary<string, int> columnLocations;
             try
             {
                 using var fileStream = File.OpenRead(Filename);
-                var reader = CreateCsvReader(fileStream);
+                using var reader = CreateCsvReader(fileStream);
                 var columnNames = reader.ReadHeaders();
-                columnLocations = Enumerable.Range(0, columnNames.Count)
-                    .ToDictionary(
-                        columnIndex => columnNames[columnIndex],
-                        columnIndex => columnIndex
-                    );
+                var lines = reader.ReadLines();
+                var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
+                var columnLocations = columnsRange.ToDictionary(
+                    columnIndex => columnNames[columnIndex],
+                    columnIndex => columnIndex
+                );
+                var columnWriters = ConvertColumnsToFiles(columnsRange, lines);
+                var columnValues = columnLocations.ToDictionary(
+                    column => column.Key,
+                    column => GetEntriesFromColumnFile(columnWriters, column));
+                return columnValues;
             }
             catch (Exception)
             {
                 return GetDefaultValue();
             }
-            var columnValues = columnLocations.ToDictionary(
-                column => column.Key,
-                column => GetColumnValues(column.Value)
-            );
-            return columnValues;
+            
         }
 
-        private IEnumerable<RawEntry> GetColumnValues(int columnLocation)
+        private IEnumerable<RawEntry> GetEntriesFromColumnFile(IReadOnlyList<StreamWriter> columnWriters, KeyValuePair<string, int> column)
         {
-            using var reader = CreateCsvReader(Filename);
-            var columnValues = reader
-                .ReadColumn(columnLocation)
-                .Where(value => !string.IsNullOrEmpty(value));
+            var columnStream = columnWriters[column.Value].BaseStream;
+            columnStream.Seek(0, SeekOrigin.Begin);
+            columnWriters[column.Value].Close();
+            return ReadColumnValuesFromStream(columnStream);
+        }
 
-            var values = new HashSet<string>();
-            foreach (var value in columnValues)
+        private static List<StreamWriter> ConvertColumnsToFiles(IEnumerable<int> columnsRange, IEnumerable<IList<string>> lines)
+        {
+            var columnWriters = columnsRange.Select(_ => CreateColumnStream()).ToList();
+            foreach (var line in lines)
             {
-                if (values.Contains(value))
+                WriteLineToColumnFiles(line, columnWriters);
+            }
+            return columnWriters;
+        }
+
+        private static void WriteLineToColumnFiles(IList<string> line, IReadOnlyList<StreamWriter> columnWriters)
+        {
+            for (int i = 0; i < line.Count; i++)
+            {
+                if (string.IsNullOrEmpty(line[i]))
                 {
                     continue;
                 }
 
-                values.Add(value);
-                yield return new RawEntry(_defaultOriginFilenames, value);
+                var column = line[i];
+                columnWriters[i].WriteLine(column);
             }
         }
 
-        private static CsvFileReader CreateCsvReader(string filename)
+        private static StreamWriter CreateColumnStream()
         {
-            var stream = File.OpenRead(filename);
-            stream.Seek(0, SeekOrigin.Begin);
-            return CreateCsvReader(stream);
+            var fileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
+            var outFile = File.Open(fileName, FileMode.Create, FileAccess.ReadWrite);
+            var outStream = new StreamWriter(outFile, Encoding.UTF8, -1, true);
+            return outStream;
         }
+
+        private IEnumerable<RawEntry> ReadColumnValuesFromStream(Stream columnStream)
+        {
+            using var columnReader = new StreamReader(columnStream);
+            var columnValues = columnReader
+                .ReadLines()
+                .Where(value => !string.IsNullOrEmpty(value))
+                .Distinct()
+                .Select(value => new RawEntry(_defaultOriginFilenames, value));
+            foreach (var columnValue in columnValues)
+            {
+                yield return columnValue;
+            }
+        }   
 
         private static CsvFileReader CreateCsvReader(Stream stream)
         {

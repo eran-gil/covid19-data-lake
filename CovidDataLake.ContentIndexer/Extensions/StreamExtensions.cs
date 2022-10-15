@@ -58,5 +58,14 @@ namespace CovidDataLake.ContentIndexer.Extensions
                 binaryWriter.Write(l);
             }
         }
+
+        public static IEnumerable<string> ReadLines(this StreamReader reader)
+        {
+            while (!reader.EndOfStream)
+            {
+                var value = reader.ReadLine();
+                yield return value;
+            }
+        }
     }
 }
