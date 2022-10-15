@@ -48,12 +48,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             {
                 originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
             }
-
             var indexDictionary = new ConcurrentDictionary<string, IndexValueModel>();
-            Parallel.ForEach(originalIndexValues, indexValue =>
+            foreach (var indexValue in originalIndexValues)
             {
                 indexDictionary[indexValue.Value] = indexValue;
-            });
+            }
 
             return indexDictionary;
         }

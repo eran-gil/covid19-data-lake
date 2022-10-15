@@ -67,20 +67,22 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         {
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
-            var rootIndexRows = new ConcurrentBag<RootIndexRow>();
-            await Parallel.ForEachAsync(indexValueBatches, async (batch, _) =>
-            {
-                var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-                var rootIndexRow = await WriteIndexFile(batch, outputFilename);
-                rootIndexRows.Add(rootIndexRow);
-            });
+            var tasks = indexValueBatches.Select(WriteBatchToFile);
+            var rootIndexRows = await Task.WhenAll(tasks);
             return rootIndexRows;
+        }
+
+        private Task<RootIndexRow> WriteBatchToFile(IndexValueModel[] batch)
+        {
+            var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
+            return WriteIndexFile(batch, outputFilename);
         }
 
         private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
         {
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
             await using var outputStreamWriter = new StreamWriter(outputFile);
+            outputStreamWriter.AutoFlush = false;
             using var jsonWriter = new JsonTextWriter(outputStreamWriter);
             var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile);
             await outputStreamWriter.FlushAsync();
@@ -180,11 +182,14 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 
         private async Task UploadIndexFiles(IEnumerable<RootIndexRow> rootIndexRows, IReadOnlyDictionary<string, string> localFileNames)
         {
-            await Parallel.ForEachAsync(rootIndexRows, async (row, _) =>
-            {
-                var localFileName = localFileNames[row.FileName];
-                await _amazonAdapter.UploadObjectAsync(_bucketName, row.FileName, localFileName);
-            });
+            var tasks = rootIndexRows.Select(row => UploadFile(row, localFileNames));
+            await Task.WhenAll(tasks);
+        }
+
+        private Task UploadFile(RootIndexRow row, IReadOnlyDictionary<string, string> localFileNames)
+        {
+            var localFileName = localFileNames[row.FileName];
+            return _amazonAdapter.UploadObjectAsync(_bucketName, row.FileName, localFileName);
         }
     }
 }
