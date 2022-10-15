@@ -2,58 +2,43 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DataAccess;
+using NReco.Csv;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
     public class CsvFileReader : IDisposable
     {
-        private readonly StreamReader _stream;
-        private readonly string _separator;
-        private bool _headerRead;
-        private readonly DataTable _dataTable;
+        private readonly StreamReader _streamReader;
+        private readonly CsvReader _csvReader;
 
-        public CsvFileReader(Stream stream, string separator = ",")
+        public CsvFileReader(Stream stream)
         {
-            _stream = new StreamReader(stream);
-            _dataTable = DataTable.New.ReadLazy(stream);
-            _separator = separator;
-            _headerRead = false;
+            _streamReader = new StreamReader(stream);
+            _csvReader = new CsvReader(_streamReader);
         }
 
         public IList<string> ReadHeaders()
         {
-            var headers = _dataTable.ColumnNames.ToList();
-            _headerRead = true;
+            _csvReader.Read();
+            var headers = Enumerable.Range(0, _csvReader.FieldsCount)
+                .Select(i => _csvReader[i])
+                .ToList();
+
             return headers;
         }
 
         public IEnumerable<IList<string>> ReadLines()
         {
-            return _dataTable.Rows.Select(row => row.Values);
-        }
-
-        public IEnumerable<string> ReadColumn(int index)
-        {
-            if (!_headerRead)
+            while (_csvReader.Read())
             {
-                ReadHeaders();
-            }
-            while(!_stream.EndOfStream)
-            {
-                var row = _stream.ReadLine();
-                if (row == null)
-                {
-                    continue;
-                }
-
-                var rowValues = row.Split(_separator);
-                yield return rowValues.ElementAtOrDefault(index);
+                yield return Enumerable.Range(0, _csvReader.FieldsCount)
+                    .Select(i => _csvReader[i])
+                    .ToList();
             }
         }
         public void Dispose()
         {
-            _stream.Dispose();
+            _streamReader.Dispose();
         }
     }
 }

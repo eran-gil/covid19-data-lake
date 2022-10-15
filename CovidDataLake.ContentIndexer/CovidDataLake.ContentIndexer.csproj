@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvTools" Version="1.0.12" />
     <PackageReference Include="jil" Version="2.17.0" />
     <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="log4net.Ext.Json" Version="2.0.10.1" />
@@ -27,6 +26,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="6.1.0" />
     <PackageReference Include="Newtonsoft.json" Version="13.0.1" />
+    <PackageReference Include="NReco.Csv" Version="1.0.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.6.66" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
   </ItemGroup>
