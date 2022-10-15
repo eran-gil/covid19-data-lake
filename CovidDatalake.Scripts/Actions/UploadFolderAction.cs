@@ -29,7 +29,8 @@ namespace CovidDataLake.Scripts.Actions
                 Console.WriteLine("Enter the folder containing the files to upload:");
                 var folder = Console.ReadLine();
                 var allFiles = Directory.GetFiles(folder!, "*", SearchOption.AllDirectories);
-                await Parallel.ForEachAsync(allFiles, UploadFileToCloud);
+                var tasks = allFiles.Select(UploadFileToCloud);
+                await Task.WhenAll(tasks);
                 return true;
             }
             catch (Exception e)
@@ -39,7 +40,7 @@ namespace CovidDataLake.Scripts.Actions
             }
         }
 
-        private async ValueTask UploadFileToCloud(string filename, CancellationToken _)
+        private async Task UploadFileToCloud(string filename)
         {
             var fileType = filename.GetExtensionFromPath();
             var cloudPath = FilePathGeneration.GenerateFilePath(fileType);

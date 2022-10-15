@@ -28,11 +28,8 @@ namespace CovidDataLake.Scripts.Actions
                 return false;
             }
             var pathObjects = (await _amazonAdapter.ListObjectsAsync(_bucketName, path)).ToList();
-            foreach (var pathObject in pathObjects)
-            {
-                await _producer.SendMessage(pathObject);
-            }
-
+            var tasks = pathObjects.Select(_producer.SendMessage);
+            await Task.WhenAll(tasks);
             Console.WriteLine($"Published {pathObjects.Count} files for indexing");
             return true;
         }

@@ -24,10 +24,14 @@ namespace CovidDataLake.Scripts.Actions
             {
                 var objects = await _amazonAdapter.ListObjectsAsync(_bucketName!, CommonKeys.INDEX_FOLDER_NAME);
                 var objectList = objects.ToList();
-                await Parallel.ForEachAsync(objectList, async (obj, _) =>
+                var tasks = new List<Task>();
+                foreach (var obj in objectList)
                 {
-                    await _amazonAdapter.DeleteObjectAsync(_bucketName, obj);
-                });
+                    var task = _amazonAdapter.DeleteObjectAsync(_bucketName, obj);
+                    tasks.Add(task);
+                }
+
+                await Task.WhenAll(tasks);
                 Console.WriteLine($"Deleted {objectList.Count} files");
                 var redisEndPoint = _redisConnection.GetEndPoints().First();
                 var redisServer = _redisConnection.GetServer(redisEndPoint);
