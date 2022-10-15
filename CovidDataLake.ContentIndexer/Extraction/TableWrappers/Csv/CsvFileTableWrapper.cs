@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using CovidDataLake.Common;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
@@ -48,15 +47,15 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             
         }
 
-        private IEnumerable<RawEntry> GetEntriesFromColumnFile(IReadOnlyList<StreamWriter> columnWriters, KeyValuePair<string, int> column)
+        private IEnumerable<RawEntry> GetEntriesFromColumnFile(IReadOnlyList<ColumnWriter> columnWriters, KeyValuePair<string, int> column)
         {
             var columnStream = columnWriters[column.Value].BaseStream;
             columnStream.Seek(0, SeekOrigin.Begin);
-            columnWriters[column.Value].Close();
+            columnWriters[column.Value].Dispose();
             return ReadColumnValuesFromStream(columnStream);
         }
 
-        private static List<StreamWriter> ConvertColumnsToFiles(IEnumerable<int> columnsRange, IEnumerable<IList<string>> lines)
+        private static List<ColumnWriter> ConvertColumnsToFiles(IEnumerable<int> columnsRange, IEnumerable<IList<string>> lines)
         {
             var columnWriters = columnsRange.Select(_ => CreateColumnStream()).ToList();
             foreach (var line in lines)
@@ -66,7 +65,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             return columnWriters;
         }
 
-        private static void WriteLineToColumnFiles(IList<string> line, IReadOnlyList<StreamWriter> columnWriters)
+        private static void WriteLineToColumnFiles(IList<string> line, IReadOnlyList<ColumnWriter> columnWriters)
         {
             for (int i = 0; i < line.Count; i++)
             {
@@ -76,15 +75,15 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 var column = line[i];
-                columnWriters[i].WriteLine(column);
+                columnWriters[i].WriteValue(column);
             }
         }
 
-        private static StreamWriter CreateColumnStream()
+        private static ColumnWriter CreateColumnStream()
         {
             var fileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
             var outFile = File.Open(fileName, FileMode.Create, FileAccess.ReadWrite);
-            var outStream = new StreamWriter(outFile, Encoding.UTF8, -1, true);
+            var outStream = new ColumnWriter(outFile);
             return outStream;
         }
 
@@ -93,8 +92,6 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             using var columnReader = new StreamReader(columnStream);
             var columnValues = columnReader
                 .ReadLines()
-                .Where(value => !string.IsNullOrEmpty(value))
-                .Distinct()
                 .Select(value => new RawEntry(_defaultOriginFilenames, value));
             foreach (var columnValue in columnValues)
             {
