@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 using CovidDataLake.Common;
-using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
@@ -21,12 +22,12 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             _defaultOriginFilenames = new List<StringWrapper>{_originFilename};
         }
         public string Filename { get; set; }
-        public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
+        public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()
         {
             try
             {
-                using var fileStream = File.OpenRead(Filename);
-                using var reader = CreateCsvReader(fileStream);
+                var fileStream = File.OpenRead(Filename);
+                var reader = CreateCsvReader(fileStream);
                 var columnNames = reader.ReadHeaders();
                 var lines = reader.ReadLines();
                 var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
@@ -34,10 +35,16 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                     columnIndex => columnNames[columnIndex],
                     columnIndex => columnIndex
                 );
-                var columnWriters = ConvertColumnsToFiles(columnsRange, lines);
+                var columnCollections = columnsRange.Select(_ => Channel.CreateUnbounded<string>()).ToList();
+                var produceTask = Task.Run(() => WriteColumnsToCollections(columnCollections, lines));
+                produceTask.ContinueWith(_ =>
+                {
+                    reader.Dispose();
+                    fileStream.Close();
+                });
                 var columnValues = columnLocations.ToDictionary(
                     column => column.Key,
-                    column => GetEntriesFromColumnFile(columnWriters, column));
+                    column => GetColumnFromChannel(columnCollections[column.Value]));
                 return columnValues;
             }
             catch (Exception)
@@ -47,25 +54,29 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             
         }
 
-        private IEnumerable<RawEntry> GetEntriesFromColumnFile(IReadOnlyList<ColumnWriter> columnWriters, KeyValuePair<string, int> column)
+        private IAsyncEnumerable<RawEntry> GetColumnFromChannel(Channel<string> rawEntries)
         {
-            var columnStream = columnWriters[column.Value].BaseStream;
-            columnStream.Seek(0, SeekOrigin.Begin);
-            columnWriters[column.Value].Dispose();
-            return ReadColumnValuesFromStream(columnStream);
+            return rawEntries.Reader
+                .ReadAllAsync()
+                .NotNull()
+                .Distinct()
+                .Select(value => new RawEntry(_defaultOriginFilenames, value));
         }
 
-        private static List<ColumnWriter> ConvertColumnsToFiles(IEnumerable<int> columnsRange, IEnumerable<IList<string>> lines)
+        private static async Task WriteColumnsToCollections(IReadOnlyList<Channel<string>> columnCollections, IEnumerable<IList<string>> lines)
         {
-            var columnWriters = columnsRange.Select(_ => CreateColumnStream()).ToList();
             foreach (var line in lines)
             {
-                WriteLineToColumnFiles(line, columnWriters);
+                await WriteLineToColumnFiles(line, columnCollections);
             }
-            return columnWriters;
+
+            foreach (var columnCollection in columnCollections)
+            {
+                columnCollection.Writer.Complete();
+            }
         }
 
-        private static void WriteLineToColumnFiles(IList<string> line, IReadOnlyList<ColumnWriter> columnWriters)
+        private static async Task WriteLineToColumnFiles(IList<string> line, IReadOnlyList<Channel<string>> columnCollections)
         {
             for (int i = 0; i < line.Count; i++)
             {
@@ -75,29 +86,9 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 var column = line[i];
-                columnWriters[i].WriteValue(column);
+                await columnCollections[i].Writer.WriteAsync(column);
             }
         }
-
-        private static ColumnWriter CreateColumnStream()
-        {
-            var fileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            var outFile = File.Open(fileName, FileMode.Create, FileAccess.ReadWrite);
-            var outStream = new ColumnWriter(outFile);
-            return outStream;
-        }
-
-        private IEnumerable<RawEntry> ReadColumnValuesFromStream(Stream columnStream)
-        {
-            using var columnReader = new StreamReader(columnStream);
-            var columnValues = columnReader
-                .ReadLines()
-                .Select(value => new RawEntry(_defaultOriginFilenames, value));
-            foreach (var columnValue in columnValues)
-            {
-                yield return columnValue;
-            }
-        }   
 
         private static CsvFileReader CreateCsvReader(Stream stream)
         {
@@ -105,9 +96,9 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             return csvReader;
         }
 
-        private static IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetDefaultValue()
+        private static IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetDefaultValue()
         {
-            return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
+            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
         }
 
     }

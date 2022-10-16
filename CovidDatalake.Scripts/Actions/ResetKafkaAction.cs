@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using CovidDataLake.Pubsub.Kafka.Admin;
-using Jil;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.Scripts.Actions
 {
@@ -16,7 +16,7 @@ namespace CovidDataLake.Scripts.Actions
         public async Task<bool> Run()
         {
             var topics = _adminClient.GetTopicNames().Except(_ignoredTopics).ToList();
-            Console.WriteLine("Topics: " + JSON.Serialize(topics));
+            Console.WriteLine("Topics: " + JsonConvert.SerializeObject(topics));
             if (topics.Any())
             {
                 await _adminClient.DeleteTopicAsync(topics);

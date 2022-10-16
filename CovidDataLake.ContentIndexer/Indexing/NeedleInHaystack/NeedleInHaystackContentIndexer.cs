@@ -1,6 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
@@ -34,13 +36,14 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             var columnUpdates = await UpdateAllColumns(allColumns);
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
             await _rootIndexAccess.ExitBatch(true);
+            GC.Collect();
+            GC.Collect();
         }
 
-        private static ConcurrentDictionary<string, IEnumerable<RawEntry>> GetAllColumns(IEnumerable<IFileTableWrapper> tableWrappers)
+        private static IDictionary<string, IAsyncEnumerable<RawEntry>> GetAllColumns(IEnumerable<IFileTableWrapper> tableWrappers)
         {
-            var unifiedColumns = new ConcurrentDictionary<string, IEnumerable<RawEntry>>();
-            var rawColumns = tableWrappers.AsParallel()
-                .SelectMany(wrapper => wrapper.GetColumns());
+            var unifiedColumns = new ConcurrentDictionary<string, IAsyncEnumerable<RawEntry>>();
+            var rawColumns = tableWrappers.SelectMany(wrapper => wrapper.GetColumns());
 
             foreach (var column in rawColumns)
             {
@@ -54,72 +57,52 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return unifiedColumns;
         }
 
-        private async Task<ConcurrentBag<RootIndexColumnUpdate>> UpdateAllColumns(ConcurrentDictionary<string, IEnumerable<RawEntry>> columns)
+        private async Task<IReadOnlyCollection<RootIndexColumnUpdate>> UpdateAllColumns(IDictionary<string, IAsyncEnumerable<RawEntry>> columns)
         {
-            var columnUpdates = new ConcurrentBag<RootIndexColumnUpdate>();
-            await Parallel.ForEachAsync(columns, async (column, _) =>
-                {
-                    var columnUpdate = await UpdateColumnIndex(column);
-                    columnUpdates.Add(columnUpdate);
-                }
-            );
+            
+            var tasks = columns.Select(UpdateColumnIndex).ToList();
+            var columnUpdates = await Task.WhenAll(tasks);
             return columnUpdates;
         }
 
-        private async Task<RootIndexColumnUpdate> UpdateColumnIndex(KeyValuePair<string, IEnumerable<RawEntry>> column)
+        private async Task<RootIndexColumnUpdate> UpdateColumnIndex(KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             //blocking collection of index file names
             //
             var mappedEntries = GetIndexFileNamesForColumns(column);
-            var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, mappedEntries.GetConsumingEnumerable());
+            var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, mappedEntries);
             return columnUpdate;
         }
 
-        private BlockingCollection<KeyValuePair<string, RawEntry>> GetIndexFileNamesForColumns(
-            KeyValuePair<string, IEnumerable<RawEntry>> column)
-        {
-            var results = new BlockingCollection<KeyValuePair<string, RawEntry>>();
-            ProduceIndexFileMapping(column, results);
-            return results;
-
-        }
-
-        private async Task ProduceIndexFileMapping(KeyValuePair<string, IEnumerable<RawEntry>> column,
-            BlockingCollection<KeyValuePair<string, RawEntry>> queue)
+        private async IAsyncEnumerable<KeyValuePair<string, RawEntry>> GetIndexFileNamesForColumns(
+            KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
-            await Parallel.ForEachAsync(columnValues, async (columnValue, token) =>
+           await  foreach (var columnValue in columnValues)
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, columnValue.Value);
                 var mapping = new KeyValuePair<string, RawEntry>(indexFileName, columnValue);
-                queue.Add(mapping, token);
-            });
-            queue.CompleteAdding();
+                yield return mapping;
+            }
+
         }
 
-        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string columnName, IEnumerable<KeyValuePair<string, RawEntry>> mappedEntries)
+        private async Task<RootIndexColumnUpdate> UpdateIndexWithColumnMapping(string columnName, IAsyncEnumerable<KeyValuePair<string, RawEntry>> mappedEntries)
         {
-            var indexFilesQueues = new ConcurrentDictionary<string, BlockingCollection<RawEntry>>();
+            var indexFilesQueues = new Dictionary<string, Channel<RawEntry>>();
             var indexTasks = new List<Task<IEnumerable<RootIndexRow>>>();
-            foreach (var mappedEntry in mappedEntries)
+            await foreach (var mappedEntry in mappedEntries)
             {
                 var (indexFileName, entry) = mappedEntry;
-                indexFilesQueues.AddOrUpdate(indexFileName,
-                    _ =>
-                    {
-                        var entries = new BlockingCollection<RawEntry> { entry };
-                        var indexTask = Task.Run(async () =>
-                            await _indexFileWriter.UpdateIndexFileWithValues(columnName, indexFileName,
-                                entries.GetConsumingEnumerable()));
-                        indexTasks.Add(indexTask);
-                        return entries;
-                    },
-                    (_, queue) =>
-                    {
-                        queue.Add(entry);
-                        return queue;
-                    }
-                );
+                if (!indexFilesQueues.ContainsKey(indexFileName))
+                {
+                    indexFilesQueues[indexFileName] = Channel.CreateUnbounded<RawEntry>();
+                    var queueEnumerable = indexFilesQueues[indexFileName].Reader.ReadAllAsync();
+                    var indexTask = _indexFileWriter.UpdateIndexFileWithValues(columnName, indexFileName, queueEnumerable);
+                    indexTasks.Add(indexTask);
+                }
+
+                await indexFilesQueues[indexFileName].Writer.WriteAsync(entry);
             }
 
             FinishAllQueues(indexFilesQueues);
@@ -141,11 +124,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return columnUpdate;
         }
 
-        private static void FinishAllQueues(ConcurrentDictionary<string, BlockingCollection<RawEntry>> indexFilesQueues)
+        private static void FinishAllQueues(IDictionary<string, Channel<RawEntry>> indexFilesQueues)
         {
             foreach (var queue in indexFilesQueues.Values)
             {
-                queue.CompleteAdding();
+                queue.Writer.Complete();
             }
         }
     }

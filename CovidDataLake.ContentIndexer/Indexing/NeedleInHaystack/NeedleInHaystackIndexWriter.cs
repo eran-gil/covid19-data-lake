@@ -39,23 +39,22 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             _maxRowsPerFile = configuration.MaxRowsPerFile;
             _serializer = new JsonSerializer();
         }
-        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(string columnName, string indexFilename, IEnumerable<RawEntry> values)
+        public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(string columnName, string indexFilename, IAsyncEnumerable<RawEntry> values)
         {
             var (indexName, localFilename) = await _indexReader.DownloadIndexFile(columnName, indexFilename);
             var indexDictionary = NeedleInHaystackIndexReader.GetIndexFromFile(localFilename);
             var newIndexValues = values.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
 
-            Parallel.ForEach(newIndexValues, indexValue =>
+            await foreach (var indexValue in newIndexValues)
+            {
+                indexDictionary.AddOrUpdate(indexValue.Value, indexValue, (_, currentValue) =>
                 {
-                    indexDictionary.AddOrUpdate(indexValue.Value, indexValue, (_, currentValue) =>
-                    {
-                        currentValue.AddFiles(indexValue.Files);
-                        return currentValue;
-                    });
-                }
-            );
+                    currentValue.AddFiles(indexValue.Files);
+                    return currentValue;
+                });
+            }
 
-            var rootIndexRows = WriteIndexToFiles(indexDictionary);
+            var rootIndexRows = await WriteIndexToFiles(indexDictionary).ToListAsync();
             var localFileNames = OverrideLocalFileNames(indexName, columnName, rootIndexRows);
 
             await UploadIndexFiles(rootIndexRows, localFileNames);
@@ -63,83 +62,73 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return rootIndexRows;
         }
 
-        private IReadOnlyCollection<RootIndexRow> WriteIndexToFiles(ConcurrentDictionary<string, IndexValueModel> indexDictionary)
+        private async IAsyncEnumerable<RootIndexRow> WriteIndexToFiles(ConcurrentDictionary<string, IndexValueModel> indexDictionary)
         {
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
-            var rootIndexRows = new ConcurrentBag<RootIndexRow>();
-            Parallel.ForEach(indexValueBatches, batch =>
+            foreach (var indexValueBatch in indexValueBatches)
             {
-                var rootIndexRow = WriteBatchToFile(batch);
-                rootIndexRows.Add(rootIndexRow);
-            });
-            return rootIndexRows;
+                var rootIndexRow = await WriteBatchToFile(indexValueBatch);
+                yield return rootIndexRow;
+            }
         }
 
-        private RootIndexRow WriteBatchToFile(IEnumerable<IndexValueModel> batch)
+        private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<IndexValueModel> batch)
         {
             var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            return WriteIndexFile(batch, outputFilename);
+            return await WriteIndexFile(batch, outputFilename);
         }
 
-        private RootIndexRow WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
+        private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
         {
-             using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
-             using var outputStreamWriter = new StreamWriter(outputFile);
-            outputStreamWriter.AutoFlush = false;
+            await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFilename);
+            await using var outputStreamWriter = new StreamWriter(outputFile);
             using var jsonWriter = new JsonTextWriter(outputStreamWriter);
-            var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile);
-            outputStreamWriter.Flush();
+            outputStreamWriter.AutoFlush = false;
+            var bloomFilter = GetBloomFilter();
+            var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile, bloomFilter);
+            await jsonWriter.FlushAsync();
             var newMetadataOffset = outputFile.Position;
-            var rootIndexRow = AddUpdatedMetadataToFile(rowsMetadata, jsonWriter);
+            var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, jsonWriter);
             rootIndexRow.FileName = outputFilename;
-            outputStreamWriter.Flush();
+            await outputStreamWriter.FlushAsync();
             var bloomOffset = outputFile.Position;
-            AddBloomFilterToIndex(rowsMetadata, outputFile);
-            outputFile.Flush();
+            bloomFilter.Serialize(outputFile);
+            await outputFile.FlushAsync();
             outputFile.WriteBinaryLongsToStream(new[] { newMetadataOffset, bloomOffset });
+            await outputFile.FlushAsync();
             return rootIndexRow;
         }
 
-        private List<FileRowMetadata> WriteIndexValuesToFile(
-            IEnumerable<IndexValueModel> indexValues, JsonWriter jsonWriter, Stream stream)
+        private async IAsyncEnumerable<FileRowMetadata> WriteIndexValuesToFile(
+            IEnumerable<IndexValueModel> indexValues,
+            JsonWriter jsonWriter,
+            Stream stream,
+            BasicBloomFilter bloomFilter)
         {
-            var rowsMetadata = new List<FileRowMetadata>();
             foreach (var indexValue in indexValues)
             {
-                var rowMetadata = new FileRowMetadata(stream.Position, indexValue.Value);
-                rowsMetadata.Add(rowMetadata);
                 _serializer.Serialize(jsonWriter, indexValue);
-                jsonWriter.WriteWhitespace(Environment.NewLine);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
+                bloomFilter.Add(indexValue.Value);
+                yield return new FileRowMetadata(stream.Position, indexValue.Value);
             }
-
-            return rowsMetadata;
         }
 
-        private RootIndexRow AddUpdatedMetadataToFile(IList<FileRowMetadata> rowsMetadata,
+        private async Task<RootIndexRow> AddUpdatedMetadataToFile(IAsyncEnumerable<FileRowMetadata> rowsMetadata,
             JsonWriter jsonWriter)
         {
-            var metadataSections = CreateMetadataFromRows(rowsMetadata).ToList();
+            var metadataSections = await CreateMetadataFromRows(rowsMetadata).ToListAsync();
             var minValue = metadataSections.First().Min;
             var maxValue = metadataSections.Last().Max;
             var rootIndexRow = new RootIndexRow(null, minValue, maxValue, null);
             foreach (var metadataSection in metadataSections)
             {
                 _serializer.Serialize(jsonWriter, metadataSection);
-                jsonWriter.WriteWhitespace(Environment.NewLine);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
             }
 
             return rootIndexRow;
-        }
-
-        private void AddBloomFilterToIndex(IEnumerable<FileRowMetadata> rows, Stream outputStream)
-        {
-            var bloomFilter = GetBloomFilter();
-            foreach (var row in rows)
-            {
-                bloomFilter.Add(row.Value);
-            }
-            bloomFilter.Serialize(outputStream);
         }
 
         private BasicBloomFilter GetBloomFilter(byte[] serializedBloomFilter = null)
@@ -154,18 +143,20 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return new BasicBloomFilter(bloomFilterStream);
         }
 
-        private IEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IList<FileRowMetadata> rowMetadatas)
+        private async IAsyncEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IAsyncEnumerable<FileRowMetadata> rowMetadatas)
         {
-            var numOfRows = rowMetadatas.Count;
-            for (var i = 0; i < numOfRows; i += _numOfRowsPerMetadataSection)
+            //var numOfRows = rowMetadatas.Count;
+
+            var enumerator = rowMetadatas.GetAsyncEnumerator();
+            while (await enumerator.MoveNextAsync())
             {
-                var currentRow = rowMetadatas[i];
+                var currentRow = enumerator.Current;
                 var min = currentRow.Value;
-                var endRow = Math.Min(i + _numOfRowsPerMetadataSection - 1, numOfRows - 1);
-                var max = rowMetadatas[endRow].Value;
+                var maxRow = await enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow);
+                
+                var max = maxRow!.Value;
                 var offset = currentRow.Offset;
-                var metadataSection = new IndexMetadataSectionModel(min, max, offset);
-                yield return metadataSection;
+                yield return new IndexMetadataSectionModel(min, max, offset);
             }
         }
 

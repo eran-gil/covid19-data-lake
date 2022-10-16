@@ -11,8 +11,8 @@ using CovidDataLake.ContentIndexer.Indexing;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration;
 using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
-using Jil;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer
 {
@@ -38,14 +38,14 @@ namespace CovidDataLake.ContentIndexer
         protected override async Task HandleMessages(IReadOnlyCollection<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var tableWrappers = await GetTableWrappersForFiles(files);
+            var tableWrappers = await GetTableWrappersForFiles(files).ToListAsync();
             var filesTotalSize = tableWrappers.Sum(tableWrapper => tableWrapper.Filename.GetFileLength());
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid,
                     ["IngestionType"] = "Content",
                     ["FilesCount"] = files.Count,
                     ["TotalSize"] = filesTotalSize,
-                    ["Files"] = JSON.Serialize(files),
+                    ["Files"] = JsonConvert.SerializeObject(files),
                 };
             using var scope = _logger.BeginScope(loggingProperties);
             _logger.LogInformation("ingestion-start");
@@ -54,13 +54,13 @@ namespace CovidDataLake.ContentIndexer
 
         }
 
-        private async Task<List<IFileTableWrapper>> GetTableWrappersForFiles(IEnumerable<string> files)
+        private async IAsyncEnumerable<IFileTableWrapper> GetTableWrappersForFiles(IEnumerable<string> files)
         {
-            var tableWrapperTasks = files.Select(async file => await GetTableWrapperForFile(file));
-            var tableWrappers = (await Task.WhenAll(tableWrapperTasks))
-                .Where(wrapper => wrapper != null)
-                .ToList();
-            return tableWrappers;
+            foreach (var file in files)
+            {
+                var tableWrapper = await GetTableWrapperForFile(file);
+                if(tableWrapper != null) yield return tableWrapper;
+            }
         }
 
         private async Task<IFileTableWrapper> GetTableWrapperForFile(string originFilename)

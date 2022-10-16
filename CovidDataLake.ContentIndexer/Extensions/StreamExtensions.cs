@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using Jil;
 using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Extensions
@@ -34,10 +33,20 @@ namespace CovidDataLake.ContentIndexer.Extensions
             return values;
         }
 
+        public static async Task WriteObjectsToFileAsync<T>(this JsonTextWriter jsonWriter, IEnumerable<T> indexValues)
+        {
+            var serializer = new JsonSerializer();
+            foreach (var indexValue in indexValues)
+            {
+                serializer.Serialize(jsonWriter, indexValue);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
+            }
+        }
+
         public static async Task WriteObjectToLineAsync<T>(this StreamWriter streamWriter, T indexValue)
         {
             if (streamWriter == null) throw new ArgumentNullException(nameof(streamWriter));
-            var serialized = JSON.Serialize(indexValue);
+            var serialized = JsonConvert.SerializeObject(indexValue);
             await streamWriter.WriteLineAsync(serialized);
         }
 

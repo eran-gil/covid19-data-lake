@@ -6,6 +6,6 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
     public interface IFileTableWrapper
     {
         string Filename { get; set; }
-        IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns();
+        IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns();
     }
 }

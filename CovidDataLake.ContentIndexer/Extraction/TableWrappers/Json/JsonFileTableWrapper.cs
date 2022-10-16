@@ -22,7 +22,7 @@ class JsonFileTableWrapper : IFileTableWrapper
         _serializer = new JsonSerializer();
     }
     public string Filename { get; set; }
-    public IEnumerable<KeyValuePair<string, IEnumerable<RawEntry>>> GetColumns()
+    public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()
     {
         try
         {
@@ -31,7 +31,7 @@ class JsonFileTableWrapper : IFileTableWrapper
         }
         catch
         {
-            return Enumerable.Empty<KeyValuePair<string, IEnumerable<RawEntry>>>();
+            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
         }
 
     }
@@ -80,9 +80,9 @@ class JsonFileTableWrapper : IFileTableWrapper
         }
     }
 
-    private IEnumerable<RawEntry> GetColumnValues(string columnName)
+    private async IAsyncEnumerable<RawEntry> GetColumnValues(string columnName)
     {
-        using var fileStream = File.OpenRead(Filename);
+        await using var fileStream = File.OpenRead(Filename);
         using var reader = new StreamReader(fileStream);
         using var jsonReader = new JsonTextReader(reader);
         var values = new HashSet<string>();

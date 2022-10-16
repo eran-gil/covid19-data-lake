@@ -10,6 +10,7 @@ using CovidDataLake.Common.Locking;
 using CovidDataLake.ContentIndexer.Configuration;
 using CovidDataLake.ContentIndexer.Extensions;
 using CovidDataLake.ContentIndexer.Indexing.Models;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
 {
@@ -129,10 +130,8 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         {
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             await using var outputStreamWriter = new StreamWriter(outputFile);
-            foreach (var outputRow in outputRows)
-            {
-                await outputStreamWriter.WriteObjectToLineAsync(outputRow);
-            }
+            using var jsonWriter= new JsonTextWriter(outputStreamWriter);
+            await jsonWriter.WriteObjectsToFileAsync(outputRows);
         }
 
         private static IEnumerable<RootIndexRow> MergeIndexWithUpdate(
