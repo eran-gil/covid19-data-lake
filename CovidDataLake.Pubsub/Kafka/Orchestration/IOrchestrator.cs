@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace CovidDataLake.Pubsub.Kafka.Orchestration
+﻿namespace CovidDataLake.Pubsub.Kafka.Orchestration
 {
     public interface IOrchestrator : IDisposable
     {

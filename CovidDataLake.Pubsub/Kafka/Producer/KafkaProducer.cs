@@ -1,14 +1,13 @@
-﻿using System.Threading.Tasks;
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 
 namespace CovidDataLake.Pubsub.Kafka.Producer
 {
     public class KafkaProducer : IProducer
     {
-        private readonly string _topic;
+        private readonly string? _topic;
         private readonly IProducer<string, string> _producer;
 
-        public KafkaProducer(string servers, string clientId, string topic)
+        public KafkaProducer(string servers, string clientId, string? topic)
         {
             _topic = topic;
             var config = new ProducerConfig
@@ -42,7 +41,7 @@ namespace CovidDataLake.Pubsub.Kafka.Producer
 
         public void Dispose()
         {
-            _producer?.Dispose();
+            _producer.Dispose();
         }
     }
 }

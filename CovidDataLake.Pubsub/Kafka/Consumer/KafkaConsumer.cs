@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 
 namespace CovidDataLake.Pubsub.Kafka.Consumer
 {
@@ -11,7 +6,7 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
     {
         private readonly IConsumer<string, string> _kafkaConsumer;
 
-        public KafkaConsumer(string servers, string clientId, string groupId)
+        public KafkaConsumer(string servers, string clientId, string? groupId)
         {
             var config = new ConsumerConfig
             {
@@ -26,7 +21,7 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
             _kafkaConsumer = new ConsumerBuilder<string, string>(config).Build();
         }
 
-        public void Subscribe(string topic)
+        public void Subscribe(string? topic)
         {
             _kafkaConsumer.Subscribe(topic);
         }
@@ -75,7 +70,7 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
 
         public void Dispose()
         {
-            _kafkaConsumer?.Dispose();
+            _kafkaConsumer.Dispose();
         }
     }
 }

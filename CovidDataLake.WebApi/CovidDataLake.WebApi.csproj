@@ -20,7 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CovidDataLake.Pubsub\CovidDataLake.Pubsub.csproj" />
     <ProjectReference Include="..\CovidDataLake.Queries\CovidDataLake.Queries.csproj" />
   </ItemGroup>
 

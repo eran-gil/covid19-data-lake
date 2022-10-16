@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using CovidDataLake.Pubsub.Kafka.Extensions;
 using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 
 namespace CovidDataLake.Pubsub.Kafka.Producer
@@ -13,11 +13,9 @@ namespace CovidDataLake.Pubsub.Kafka.Producer
 
         public IProducer CreateProducer(string clientId)
         {
-            var servers = _configuration.Instances
-                .Select(instance => $"{instance.Host}:{instance.Port}")
-                .Aggregate((s1, s2) => $"{s1},{s2}");
+            var connectionString = _configuration.Instances!.ToConnectionString();
 
-            var producer = new KafkaProducer(servers, clientId, _configuration.Topic);
+            var producer = new KafkaProducer(connectionString, clientId, _configuration.Topic);
             return producer;
         }
     }

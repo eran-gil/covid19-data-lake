@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
+﻿using CovidDataLake.Pubsub.Kafka.Consumer.Configuration;
+using CovidDataLake.Pubsub.Kafka.Extensions;
 
 namespace CovidDataLake.Pubsub.Kafka.Consumer
 {
@@ -14,10 +14,9 @@ namespace CovidDataLake.Pubsub.Kafka.Consumer
 
         public IConsumer CreateConsumer(string clientId)
         {
-            var servers = _configuration.Instances
-                .Select(instance => $"{instance.Host}:{instance.Port}")
-                .Aggregate((s1, s2) => $"{s1},{s2}");
-            var consumer = new KafkaConsumer(servers, clientId, _configuration.GroupId);
+            var connectionString = _configuration.Instances!.ToConnectionString();
+
+            var consumer = new KafkaConsumer(connectionString, clientId, _configuration.GroupId);
             consumer.Subscribe(_configuration.Topic);
             return consumer;
         }

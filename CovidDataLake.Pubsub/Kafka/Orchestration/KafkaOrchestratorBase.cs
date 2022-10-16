@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net;
+using CovidDataLake.Common;
 using CovidDataLake.Pubsub.Kafka.Consumer;
 using CovidDataLake.Pubsub.Kafka.Orchestration.Configuration;
 using Microsoft.Extensions.Logging;
@@ -39,6 +36,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
 
         private async Task LogAndHandleMessages(IReadOnlyCollection<string> files)
         {
+            using var step = _logger.Step("batch");
             _logger.LogInformation("batch-started");
             await HandleMessages(files);
             _logger.LogInformation("batch-ended");
@@ -48,9 +46,9 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
 
         public void Dispose()
         {
-            _consumer?.Dispose();
+            _consumer.Dispose();
             _cancellationTokenSource.Cancel();
-            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource.Dispose();
         }
     }
 }

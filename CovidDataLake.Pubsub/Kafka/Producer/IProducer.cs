@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-
-namespace CovidDataLake.Pubsub.Kafka.Producer
+﻿namespace CovidDataLake.Pubsub.Kafka.Producer
 {
     public interface IProducer : IDisposable
     {

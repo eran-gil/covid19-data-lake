@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace CovidDataLake.Pubsub.Kafka.Admin.Configuration
+﻿namespace CovidDataLake.Pubsub.Kafka.Admin.Configuration
 {
     public class KafkaAdminClientConfiguration
     {
-        public IEnumerable<KafkaInstance> Instances { get; set; }
+        public IEnumerable<KafkaInstance>? Instances { get; set; }
     }
 }

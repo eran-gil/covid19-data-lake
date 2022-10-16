@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using CovidDataLake.Pubsub.Kafka.Extensions;
 using CovidDataLake.Pubsub.Kafka.Producer.Configuration;
 
 namespace CovidDataLake.Pubsub.Kafka.Admin
@@ -13,11 +13,10 @@ namespace CovidDataLake.Pubsub.Kafka.Admin
 
         public IPubSubAdmin CreateAdminClient(string clientId)
         {
-            var servers = _configuration.Instances
-                .Select(instance => $"{instance.Host}:{instance.Port}")
-                .Aggregate((s1, s2) => $"{s1},{s2}");
+            var connectionString = _configuration.Instances!.ToConnectionString();
 
-            var producer = new KafkaAdminClient(servers, clientId);
+
+            var producer = new KafkaAdminClient(connectionString, clientId);
             return producer;
         }
     }
