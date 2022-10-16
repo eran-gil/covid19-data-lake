@@ -2,35 +2,38 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 {
-    internal class ColumnWriter : IDisposable
+    internal class ColumnWriter
     {
-        private readonly StreamWriter _streamWriter;
         private readonly HashSet<string> _distinctValues;
+        private readonly Channel<string> _columnValues;
 
-        public ColumnWriter(Stream stream)
+        public ColumnWriter()
         {
-            _streamWriter = new StreamWriter(stream, Encoding.UTF8, -1, true);
+            _columnValues = Channel.CreateUnbounded<string>();
             _distinctValues = new HashSet<string>();
         }
 
-        public Stream BaseStream => _streamWriter.BaseStream;
+        public IAsyncEnumerable<string> ColumnValues => _columnValues.Reader.ReadAllAsync();
 
-        public void WriteValue(string value)
+        public async Task WriteValue(string value)
         {
-            if (value == null || _distinctValues.Contains(value))
+            if (string.IsNullOrEmpty(value) || _distinctValues.Contains(value))
             {
                 return;
             }
-            _streamWriter.WriteLine(value);
+            await _columnValues.Writer.WriteAsync(value);
             _distinctValues.Add(value);
         }
 
-        public void Dispose()
+        public void FinishColumn()
         {
-            _streamWriter.Close();
+            _columnValues.Writer.Complete();
         }
+
     }
 }
