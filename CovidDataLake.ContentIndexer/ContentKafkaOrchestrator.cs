@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
+using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.ContentIndexer.Extraction;
 using CovidDataLake.ContentIndexer.Extraction.TableWrappers;
@@ -47,10 +48,8 @@ namespace CovidDataLake.ContentIndexer
                     ["TotalSize"] = filesTotalSize,
                     ["Files"] = JsonConvert.SerializeObject(files),
                 };
-            using var scope = _logger.BeginScope(loggingProperties);
-            _logger.LogInformation("ingestion-start");
+            using var step = _logger.Step("ingestion", loggingProperties);
             await _contentIndexer.IndexTableAsync(tableWrappers);
-            _logger.LogInformation("ingestion-end");
 
         }
 
