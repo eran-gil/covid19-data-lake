@@ -7,6 +7,7 @@ namespace CovidDataLake.Common.Logging
         private readonly string _name;
         private readonly ILogger _logger;
         private readonly Dictionary<string, object>? _scopeData;
+        private IDisposable? _scope;
 
         public LoggingStep(string name, ILogger logger, Dictionary<string, object>? scopeData)
         {
@@ -19,7 +20,7 @@ namespace CovidDataLake.Common.Logging
         {
             if (_scopeData != null)
             {
-                _logger.BeginScope(_scopeData);
+                _scope = _logger.BeginScope(_scopeData);
             }
             _logger.LogInformation($"{_name}-start");
         }
@@ -27,6 +28,7 @@ namespace CovidDataLake.Common.Logging
         public void Dispose()
         {
             _logger.LogInformation($"{_name}-end");
+            _scope?.Dispose();
         }
     }
 }
