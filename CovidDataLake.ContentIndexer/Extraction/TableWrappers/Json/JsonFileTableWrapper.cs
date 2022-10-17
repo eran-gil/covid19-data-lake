@@ -18,7 +18,7 @@ class JsonFileTableWrapper : IFileTableWrapper
     {
         Filename = filename;
         _originFilename = new StringWrapper(originFilename);
-        _defaultOriginFilenames = new List<StringWrapper>{_originFilename};
+        _defaultOriginFilenames = new List<StringWrapper> { _originFilename };
         _serializer = new JsonSerializer();
     }
     public string Filename { get; set; }

@@ -148,7 +148,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
                 var currentRow = enumerator.Current;
                 var min = currentRow.Value;
                 var maxRow = await enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow);
-                
+
                 var max = maxRow!.Value;
                 var offset = currentRow.Offset;
                 yield return new IndexMetadataSectionModel(min, max, offset);

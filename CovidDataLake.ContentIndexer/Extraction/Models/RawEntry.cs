@@ -14,7 +14,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.Models
 
         public RawEntry(StringWrapper originFilename, string value)
         {
-            _originFileNames = new List<StringWrapper> {originFilename};
+            _originFileNames = new List<StringWrapper> { originFilename };
             Value = value;
             _initiatedFromList = false;
         }

@@ -42,7 +42,9 @@ namespace CovidDataLake.ContentIndexer
             var tableWrappers = (await GetTableWrappersForFiles(files)).ToList();
             var filesTotalSize = tableWrappers.Sum(tableWrapper => tableWrapper.Filename.GetFileLength());
             var loggingProperties =
-                new Dictionary<string, object> { ["IngestionId"] = batchGuid,
+                new Dictionary<string, object>
+                {
+                    ["IngestionId"] = batchGuid,
                     ["IngestionType"] = "Content",
                     ["FilesCount"] = files.Count,
                     ["TotalSize"] = filesTotalSize,

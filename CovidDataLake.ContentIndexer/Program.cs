@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.S3;
 using CovidDataLake.Cloud.Amazon;

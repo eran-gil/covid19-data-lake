@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,7 +57,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 
         private async Task<IReadOnlyCollection<RootIndexColumnUpdate>> UpdateAllColumns(IDictionary<string, IAsyncEnumerable<RawEntry>> columns)
         {
-            
+
             var tasks = columns.Select(UpdateColumnIndex).ToList();
             var columnUpdates = await Task.WhenAll(tasks);
             return columnUpdates;
@@ -76,7 +76,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
-           await  foreach (var columnValue in columnValues)
+            await foreach (var columnValue in columnValues)
             {
                 var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, columnValue.Value);
                 var mapping = new KeyValuePair<string, RawEntry>(indexFileName, columnValue);

@@ -11,7 +11,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
     {
         public static IEnumerable<T> GetDeserializedRowsFromFile<T>(this FileStream file, long beginOffset, long offsetLimit)
         {
-            var readLength = (int) offsetLimit - beginOffset;
+            var readLength = (int)offsetLimit - beginOffset;
             var buffer = new byte[readLength];
             file.Seek(beginOffset, SeekOrigin.Begin);
             // ReSharper disable once MustUseReturnValue

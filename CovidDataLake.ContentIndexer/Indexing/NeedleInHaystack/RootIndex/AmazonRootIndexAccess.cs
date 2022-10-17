@@ -130,7 +130,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         {
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             await using var outputStreamWriter = new StreamWriter(outputFile);
-            using var jsonWriter= new JsonTextWriter(outputStreamWriter);
+            using var jsonWriter = new JsonTextWriter(outputStreamWriter);
             await jsonWriter.WriteObjectsToFileAsync(outputRows);
         }
 

@@ -18,7 +18,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         {
             Filename = filename;
             _originFilename = new StringWrapper(originFilename);
-            _defaultOriginFilenames = new List<StringWrapper>{_originFilename};
+            _defaultOriginFilenames = new List<StringWrapper> { _originFilename };
         }
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()
@@ -28,29 +28,29 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 var fileStream = File.OpenRead(Filename);
                 var reader = CreateCsvReader(fileStream);
                 var columnNames = reader.ReadHeaders();
-            var lines = reader.ReadLines();
-            var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
-            var columnLocations = columnsRange.ToDictionary(
-                columnIndex => columnNames[columnIndex],
-                columnIndex => columnIndex
-            );
-            var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
-            var produceTask = WriteColumnsToCollections(columnCollections, lines);
-            produceTask.ContinueWith(_ =>
-            {
-                reader.Dispose();
-                fileStream.Close();
-            });
-            var columnValues = columnLocations.ToDictionary(
-                    column => column.Key,
-                    column => GetColumnFromChannel(columnCollections[column.Value]));
+                var lines = reader.ReadLines();
+                var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
+                var columnLocations = columnsRange.ToDictionary(
+                    columnIndex => columnNames[columnIndex],
+                    columnIndex => columnIndex
+                );
+                var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
+                var produceTask = WriteColumnsToCollections(columnCollections, lines);
+                produceTask.ContinueWith(_ =>
+                {
+                    reader.Dispose();
+                    fileStream.Close();
+                });
+                var columnValues = columnLocations.ToDictionary(
+                        column => column.Key,
+                        column => GetColumnFromChannel(columnCollections[column.Value]));
                 return columnValues;
             }
             catch (Exception)
             {
                 return GetDefaultValue();
             }
-            
+
         }
 
         private IAsyncEnumerable<RawEntry> GetColumnFromChannel(ColumnWriter rawEntries)

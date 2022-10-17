@@ -29,7 +29,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             var columnIndex = _cache[column];
             var max = columnIndex.Max;
             var comparedIndexRow = new RootIndexRow { ColumnName = column, Max = val };
-            if(max!.CompareTo(comparedIndexRow) < 0)
+            if (max!.CompareTo(comparedIndexRow) < 0)
             {
                 return Task.FromResult(default(string));
             }
@@ -54,8 +54,8 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             _cache = new ConcurrentDictionary<string, SortedSet<RootIndexRow>>();
             foreach (var indexRow in indexRows)
             {
-                
-                _cache.AddOrUpdate(indexRow.ColumnName, _ => new SortedSet<RootIndexRow>{indexRow},
+
+                _cache.AddOrUpdate(indexRow.ColumnName, _ => new SortedSet<RootIndexRow> { indexRow },
                     (_, current) =>
                     {
                         current.Add(indexRow);
