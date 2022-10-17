@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,7 +35,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                     columnIndex => columnIndex
                 );
                 var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
-                var produceTask = WriteColumnsToCollections(columnCollections, lines);
+                var produceTask = Task.Run(async () => await WriteColumnsToCollections(columnCollections, lines));
                 produceTask.ContinueWith(_ =>
                 {
                     reader.Dispose();
