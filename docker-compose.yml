@@ -26,8 +26,7 @@ services:
   redis:
     image: docker.io/bitnami/redis:latest
     environment:
-      # ALLOW_EMPTY_PASSWORD is recommended only for development.
-      - ALLOW_EMPTY_PASSWORD=yes
+      - ALLOW_EMPTY_PASSWORD=yes # ALLOW_EMPTY_PASSWORD is recommended only for development.
     ports:
       - '6379:6379'
     volumes:
@@ -37,8 +36,20 @@ services:
     restart: always
     ports:
       - "9000:9000"
+    depends_on:
+      - zookeeper
     environment:
       ZK_HOSTS: "zookeeper:2181"
+  cmak2zk:
+    image: ghcr.io/eshepelyuk/dckr/cmak2zk:latest
+    restart: on-failure
+    command:
+      - 'zookeeper:2181'
+      - '/app/etc/clusters.yaml'
+    depends_on:
+      - zookeeper
+    volumes:
+      - ./clusters.yaml:/app/etc/clusters.yaml:ro"
 
 volumes:
   zookeeper_data:
