@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,8 +36,6 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             var columnUpdates = await UpdateAllColumns(allColumns);
             await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
             await _rootIndexAccess.ExitBatch(true);
-            GC.Collect();
-            GC.Collect();
         }
 
         private static IDictionary<string, IAsyncEnumerable<RawEntry>> GetAllColumns(IEnumerable<IFileTableWrapper> tableWrappers)

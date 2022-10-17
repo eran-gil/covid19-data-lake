@@ -37,9 +37,7 @@ namespace CovidDataLake.Pubsub.Kafka.Orchestration
         private async Task LogAndHandleMessages(IReadOnlyCollection<string> files)
         {
             using var step = _logger.Step("batch");
-            _logger.LogInformation("batch-started");
             await HandleMessages(files);
-            _logger.LogInformation("batch-ended");
         }
 
         protected abstract Task HandleMessages(IReadOnlyCollection<string> files);

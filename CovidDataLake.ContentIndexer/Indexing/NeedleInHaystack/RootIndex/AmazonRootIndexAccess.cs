@@ -142,7 +142,8 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             var updateIndexColumns = MapUpdatesToDictionary(updates);
             MergeUpdateToIndex(updateIndexColumns, indexColumns);
             var newIndexEntries = indexColumns.SelectMany(SortFilesInColumn);
-            return newIndexEntries;
+            var sorted = new SortedSet<RootIndexRow>(newIndexEntries);
+            return sorted;
         }
 
         private static void MergeUpdateToIndex(Dictionary<string, Dictionary<string, List<RootIndexRow>>> updateIndexColumns, Dictionary<string, Dictionary<string, List<RootIndexRow>>> indexColumns)

@@ -39,7 +39,7 @@ namespace CovidDataLake.ContentIndexer
         protected override async Task HandleMessages(IReadOnlyCollection<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var tableWrappers = await GetTableWrappersForFiles(files).ToListAsync();
+            var tableWrappers = (await GetTableWrappersForFiles(files)).ToList();
             var filesTotalSize = tableWrappers.Sum(tableWrapper => tableWrapper.Filename.GetFileLength());
             var loggingProperties =
                 new Dictionary<string, object> { ["IngestionId"] = batchGuid,
@@ -53,13 +53,11 @@ namespace CovidDataLake.ContentIndexer
 
         }
 
-        private async IAsyncEnumerable<IFileTableWrapper> GetTableWrappersForFiles(IEnumerable<string> files)
+        private async Task<IEnumerable<IFileTableWrapper>> GetTableWrappersForFiles(IEnumerable<string> files)
         {
-            foreach (var file in files)
-            {
-                var tableWrapper = await GetTableWrapperForFile(file);
-                if(tableWrapper != null) yield return tableWrapper;
-            }
+            var tableWrapperTasks = files.Select(GetTableWrapperForFile);
+            var tableWrappers = await Task.WhenAll(tableWrapperTasks);
+            return tableWrappers.NotNull();
         }
 
         private async Task<IFileTableWrapper> GetTableWrapperForFile(string originFilename)

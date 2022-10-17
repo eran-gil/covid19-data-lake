@@ -28,20 +28,20 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 var fileStream = File.OpenRead(Filename);
                 var reader = CreateCsvReader(fileStream);
                 var columnNames = reader.ReadHeaders();
-                var lines = reader.ReadLines();
-                var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
-                var columnLocations = columnsRange.ToDictionary(
-                    columnIndex => columnNames[columnIndex],
-                    columnIndex => columnIndex
-                );
-                var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
-                var produceTask = WriteColumnsToCollections(columnCollections, lines);
-                produceTask.ContinueWith(_ =>
-                {
-                    reader.Dispose();
-                    fileStream.Close();
-                });
-                var columnValues = columnLocations.ToDictionary(
+            var lines = reader.ReadLines();
+            var columnsRange = Enumerable.Range(0, columnNames.Count).ToList();
+            var columnLocations = columnsRange.ToDictionary(
+                columnIndex => columnNames[columnIndex],
+                columnIndex => columnIndex
+            );
+            var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
+            var produceTask = WriteColumnsToCollections(columnCollections, lines);
+            produceTask.ContinueWith(_ =>
+            {
+                reader.Dispose();
+                fileStream.Close();
+            });
+            var columnValues = columnLocations.ToDictionary(
                     column => column.Key,
                     column => GetColumnFromChannel(columnCollections[column.Value]));
                 return columnValues;
@@ -76,6 +76,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 
         private static async Task WriteLineToColumnFiles(IList<string> line, IReadOnlyList<ColumnWriter> columnCollections)
         {
+            var columnTasks = new List<Task>();
             for (int i = 0; i < line.Count; i++)
             {
                 if (string.IsNullOrEmpty(line[i]))
@@ -84,8 +85,10 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 var column = line[i];
-                await columnCollections[i].WriteValue(column);
+                var columnTask = columnCollections[i].WriteValue(column);
+                columnTasks.Add(columnTask);
             }
+            await Task.WhenAll(columnTasks);
         }
 
         private static CsvFileReader CreateCsvReader(Stream stream)
