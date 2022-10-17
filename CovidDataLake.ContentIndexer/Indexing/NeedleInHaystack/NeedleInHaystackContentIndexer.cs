@@ -33,8 +33,8 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
-            var columnUpdates = await UpdateAllColumns(allColumns);
-            await _rootIndexAccess.UpdateColumnRanges(columnUpdates);
+            var columnUpdates = await UpdateAllColumns(allColumns).ConfigureAwait(false);
+            await _rootIndexAccess.UpdateColumnRanges(columnUpdates).ConfigureAwait(false);
             await _rootIndexAccess.ExitBatch(true);
         }
 
@@ -59,7 +59,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         {
 
             var tasks = columns.Select(UpdateColumnIndex).ToList();
-            var columnUpdates = await Task.WhenAll(tasks);
+            var columnUpdates = await Task.WhenAll(tasks).ConfigureAwait(false);
             return columnUpdates;
         }
 
@@ -68,7 +68,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             //blocking collection of index file names
             //
             var mappedEntries = GetIndexFileNamesForColumns(column);
-            var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, mappedEntries);
+            var columnUpdate = await UpdateIndexWithColumnMapping(column.Key, mappedEntries).ConfigureAwait(false);
             return columnUpdate;
         }
 
@@ -76,9 +76,9 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             KeyValuePair<string, IAsyncEnumerable<RawEntry>> column)
         {
             var (columnName, columnValues) = column;
-            await foreach (var columnValue in columnValues)
+            await foreach (var columnValue in columnValues.ConfigureAwait(false))
             {
-                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, columnValue.Value);
+                var indexFileName = await _rootIndexAccess.GetFileNameForColumnAndValue(columnName, columnValue.Value).ConfigureAwait(false);
                 var mapping = new KeyValuePair<string, RawEntry>(indexFileName, columnValue);
                 yield return mapping;
             }
@@ -89,7 +89,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         {
             var indexFilesQueues = new Dictionary<string, Channel<RawEntry>>();
             var indexTasks = new List<Task<IEnumerable<RootIndexRow>>>();
-            await foreach (var mappedEntry in mappedEntries)
+            await foreach (var mappedEntry in mappedEntries.ConfigureAwait(false))
             {
                 var (indexFileName, entry) = mappedEntry;
                 if (!indexFilesQueues.ContainsKey(indexFileName))
@@ -100,12 +100,12 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
                     indexTasks.Add(indexTask);
                 }
 
-                await indexFilesQueues[indexFileName].Writer.WriteAsync(entry);
+                await indexFilesQueues[indexFileName].Writer.WriteAsync(entry).ConfigureAwait(false);
             }
 
             FinishAllQueues(indexFilesQueues);
 
-            var rootIndexRows = (await Task.WhenAll(indexTasks))
+            var rootIndexRows = (await Task.WhenAll(indexTasks).ConfigureAwait(false))
                 .SelectMany(rows => rows)
                 .ToList();
 

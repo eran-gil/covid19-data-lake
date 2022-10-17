@@ -23,7 +23,7 @@ namespace CovidDataLake.Cloud.Amazon
                 Key = objectKey,
                 FilePath = sourceFilename
             };
-            var response = await _awsClient.PutObjectAsync(putObjectRequest);
+            var response = await _awsClient.PutObjectAsync(putObjectRequest).ConfigureAwait(false);
             if (response.HttpStatusCode != HttpStatusCode.OK)
             {
                 throw new Exception("couldn't upload to amazon");
@@ -47,8 +47,8 @@ namespace CovidDataLake.Cloud.Amazon
             };
             try
             {
-                using var response = await _awsClient.GetObjectAsync(getRequest);
-                await response.WriteResponseStreamToFileAsync(downloadedFilePath, false, CancellationToken.None);
+                using var response = await _awsClient.GetObjectAsync(getRequest).ConfigureAwait(false);
+                await response.WriteResponseStreamToFileAsync(downloadedFilePath, false, CancellationToken.None).ConfigureAwait(false);
 
                 return downloadedFilePath;
             }
@@ -69,7 +69,7 @@ namespace CovidDataLake.Cloud.Amazon
             var request = new GetObjectMetadataRequest { BucketName = bucketName, Key = objectKey };
             try
             {
-                var metadataResponse = await _awsClient.GetObjectMetadataAsync(request);
+                var metadataResponse = await _awsClient.GetObjectMetadataAsync(request).ConfigureAwait(false);
                 return metadataResponse.HttpStatusCode == HttpStatusCode.OK;
             }
             catch
@@ -84,7 +84,7 @@ namespace CovidDataLake.Cloud.Amazon
             var request = new ListObjectsV2Request() { BucketName = bucketName, Prefix = path};
             try
             {
-                var listObjectsResponse = await _awsClient.ListObjectsV2Async(request);
+                var listObjectsResponse = await _awsClient.ListObjectsV2Async(request).ConfigureAwait(false);
                 if (listObjectsResponse.HttpStatusCode != HttpStatusCode.OK)
                 {
                     return Enumerable.Empty<string>();
@@ -101,7 +101,7 @@ namespace CovidDataLake.Cloud.Amazon
 
         public async Task DeleteObjectAsync(string? bucketName, string objectKey)
         {
-            await _awsClient.DeleteObjectAsync(bucketName, objectKey);
+            await _awsClient.DeleteObjectAsync(bucketName, objectKey).ConfigureAwait(false);
         }
 
         public void Dispose()

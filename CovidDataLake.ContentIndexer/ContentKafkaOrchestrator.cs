@@ -39,7 +39,7 @@ namespace CovidDataLake.ContentIndexer
         protected override async Task HandleMessages(IReadOnlyCollection<string> files)
         {
             var batchGuid = Guid.NewGuid();
-            var tableWrappers = (await GetTableWrappersForFiles(files)).ToList();
+            var tableWrappers = (await GetTableWrappersForFiles(files).ConfigureAwait(false)).ToList();
             var filesTotalSize = tableWrappers.Sum(tableWrapper => tableWrapper.Filename.GetFileLength());
             var loggingProperties =
                 new Dictionary<string, object>
@@ -51,14 +51,14 @@ namespace CovidDataLake.ContentIndexer
                     ["Files"] = JsonConvert.SerializeObject(files),
                 };
             using var step = _logger.Step("ingestion", loggingProperties);
-            await _contentIndexer.IndexTableAsync(tableWrappers);
+            await _contentIndexer.IndexTableAsync(tableWrappers).ConfigureAwait(false);
 
         }
 
         private async Task<IEnumerable<IFileTableWrapper>> GetTableWrappersForFiles(IEnumerable<string> files)
         {
             var tableWrapperTasks = files.Select(GetTableWrapperForFile);
-            var tableWrappers = await Task.WhenAll(tableWrapperTasks);
+            var tableWrappers = await Task.WhenAll(tableWrapperTasks).ConfigureAwait(false);
             return tableWrappers.NotNull();
         }
 
@@ -71,7 +71,7 @@ namespace CovidDataLake.ContentIndexer
             {
                 return null;
             }
-            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, originFilename);
+            var downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, originFilename).ConfigureAwait(false);
             var tableWrapper = tableWrapperFactory.CreateTableWrapperForFile(downloadedFileName, originFilename);
             return tableWrapper;
         }

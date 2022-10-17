@@ -29,7 +29,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
                 NeedleInHaystackUtils.CreateNewColumnIndexFileName(columnName);
             if (indexFilename != CommonKeys.END_OF_INDEX_FLAG)
             {
-                downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename);
+                downloadedFilename = await _amazonAdapter.DownloadObjectAsync(_bucketName, indexFilename).ConfigureAwait(false);
             }
             else
             {

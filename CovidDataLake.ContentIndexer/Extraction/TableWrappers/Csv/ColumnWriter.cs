@@ -23,7 +23,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
             {
                 return;
             }
-            await _columnValues.Writer.WriteAsync(value);
+            await _columnValues.Writer.WriteAsync(value).ConfigureAwait(false);
             _distinctValues.Add(value);
         }
 

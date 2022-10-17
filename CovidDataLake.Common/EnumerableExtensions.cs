@@ -22,7 +22,7 @@
             var item = defaultValue;
             for (var i = 0; i < n; i++)
             {
-                if (!(await enumerator.MoveNextAsync()))
+                if (!(await enumerator.MoveNextAsync().ConfigureAwait(false)))
                 {
                     break;
                 }

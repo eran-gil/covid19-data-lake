@@ -48,7 +48,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         public async Task ExitBatch(bool shouldUpdate = false)
         {
             if (shouldUpdate)
-                await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, _rootIndexLocalFileName);
+                await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, _rootIndexLocalFileName).ConfigureAwait(false);
             _rootIndexLocalFileName = string.Empty;
             _isCacheLoaded = false;
             await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY);
@@ -61,16 +61,16 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             var indexRows = GetIndexRowsFromFile(stream);
             var outputRows = MergeIndexWithUpdate(indexRows, columnMappings);
             var outputFileName = Path.Join(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            await WriteIndexRowsToFile(outputFileName, outputRows);
+            await WriteIndexRowsToFile(outputFileName, outputRows).ConfigureAwait(false);
             _rootIndexLocalFileName = outputFileName;
             await _lockMechanism.ReleaseLock(CommonKeys.ROOT_INDEX_UPDATE_FILE_LOCK_KEY);
-            await _cache.UpdateColumnRanges(columnMappings);
+            await _cache.UpdateColumnRanges(columnMappings).ConfigureAwait(false);
         }
 
 
         public async Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
-            var cached = await _cache.GetFileNameForColumnAndValue(column, val);
+            var cached = await _cache.GetFileNameForColumnAndValue(column, val).ConfigureAwait(false);
             if (cached != null) return cached;
             if (_isCacheLoaded) return CommonKeys.END_OF_INDEX_FLAG;
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
@@ -86,7 +86,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
                 Rows = new SortedSet<RootIndexRow> { relevantIndexRow }
             };
 
-            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate> { update });
+            await _cache.UpdateColumnRanges(new SortedSet<RootIndexColumnUpdate> { update }).ConfigureAwait(false);
             return relevantIndexRow.FileName;
         }
 
@@ -95,11 +95,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             string downloadedFileName;
             try
             {
-                downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName);
+                downloadedFileName = await _amazonAdapter.DownloadObjectAsync(_bucketName, _rootIndexName).ConfigureAwait(false);
             }
             catch (ResourceNotFoundException)
             {
-                downloadedFileName = await CreateRootIndexFile();
+                downloadedFileName = await CreateRootIndexFile().ConfigureAwait(false);
             }
 
             return downloadedFileName;
@@ -109,7 +109,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         {
             using var stream = OptionalFileStream.CreateOptionalFileReadStream(_rootIndexLocalFileName);
             var indexRows = GetIndexRowsFromFile(stream);
-            await _cache.LoadAllEntries(indexRows);
+            await _cache.LoadAllEntries(indexRows).ConfigureAwait(false);
         }
 
         private async Task<string> CreateRootIndexFile()
@@ -117,7 +117,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             var fileName = $"{CommonKeys.TEMP_FOLDER_NAME}/{Guid.NewGuid()}.txt";
             var file = FileCreator.CreateFileAndPath(fileName);
             file.Close();
-            await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName);
+            await _amazonAdapter.UploadObjectAsync(_bucketName, _rootIndexName, fileName).ConfigureAwait(false);
             return fileName;
         }
 
@@ -131,7 +131,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
             await using var outputFile = FileCreator.OpenFileWriteAndCreatePath(outputFileName);
             await using var outputStreamWriter = new StreamWriter(outputFile);
             using var jsonWriter = new JsonTextWriter(outputStreamWriter);
-            await jsonWriter.WriteObjectsToFileAsync(outputRows);
+            await jsonWriter.WriteObjectsToFileAsync(outputRows).ConfigureAwait(false);
         }
 
         private static IEnumerable<RootIndexRow> MergeIndexWithUpdate(

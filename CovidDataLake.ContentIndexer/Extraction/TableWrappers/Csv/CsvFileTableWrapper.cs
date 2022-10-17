@@ -35,7 +35,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                     columnIndex => columnIndex
                 );
                 var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
-                var produceTask = Task.Run(async () => await WriteColumnsToCollections(columnCollections, lines));
+                var produceTask = Task.Run(async () => await WriteColumnsToCollections(columnCollections, lines).ConfigureAwait(false));
                 produceTask.ContinueWith(_ =>
                 {
                     reader.Dispose();
@@ -65,7 +65,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         {
             foreach (var line in lines)
             {
-                await WriteLineToColumnFiles(line, columnCollections);
+                await WriteLineToColumnFiles(line, columnCollections).ConfigureAwait(false);
             }
 
             foreach (var columnCollection in columnCollections)
@@ -76,7 +76,6 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 
         private static async Task WriteLineToColumnFiles(IList<string> line, IReadOnlyList<ColumnWriter> columnCollections)
         {
-            var columnTasks = new List<Task>();
             for (int i = 0; i < line.Count; i++)
             {
                 if (string.IsNullOrEmpty(line[i]))
@@ -85,10 +84,8 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 var column = line[i];
-                var columnTask = columnCollections[i].WriteValue(column);
-                columnTasks.Add(columnTask);
+                await columnCollections[i].WriteValue(column).ConfigureAwait(false);
             }
-            await Task.WhenAll(columnTasks);
         }
 
         private static CsvFileReader CreateCsvReader(Stream stream)

@@ -39,7 +39,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
             foreach (var indexValue in indexValues)
             {
                 serializer.Serialize(jsonWriter, indexValue);
-                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine).ConfigureAwait(false);
             }
         }
 
@@ -47,7 +47,7 @@ namespace CovidDataLake.ContentIndexer.Extensions
         {
             if (streamWriter == null) throw new ArgumentNullException(nameof(streamWriter));
             var serialized = JsonConvert.SerializeObject(indexValue);
-            await streamWriter.WriteLineAsync(serialized);
+            await streamWriter.WriteLineAsync(serialized).ConfigureAwait(false);
         }
 
         public static long ReadBinaryLongFromStream(this Stream stream)

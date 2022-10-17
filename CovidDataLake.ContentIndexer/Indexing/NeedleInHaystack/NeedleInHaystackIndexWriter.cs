@@ -41,11 +41,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         }
         public async Task<IEnumerable<RootIndexRow>> UpdateIndexFileWithValues(string columnName, string indexFilename, IAsyncEnumerable<RawEntry> values)
         {
-            var (indexName, localFilename) = await _indexReader.DownloadIndexFile(columnName, indexFilename);
+            var (indexName, localFilename) = await _indexReader.DownloadIndexFile(columnName, indexFilename).ConfigureAwait(false);
             var indexDictionary = NeedleInHaystackIndexReader.GetIndexFromFile(localFilename);
             var newIndexValues = values.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
 
-            await foreach (var indexValue in newIndexValues)
+            await foreach (var indexValue in newIndexValues.ConfigureAwait(false))
             {
                 indexDictionary.AddOrUpdate(indexValue.Value, indexValue, (_, currentValue) =>
                 {
@@ -54,10 +54,10 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
                 });
             }
 
-            var rootIndexRows = await WriteIndexToFiles(indexDictionary);
+            var rootIndexRows = await WriteIndexToFiles(indexDictionary).ConfigureAwait(false);
             var localFileNames = OverrideLocalFileNames(indexName, columnName, rootIndexRows);
 
-            await UploadIndexFiles(rootIndexRows, localFileNames);
+            await UploadIndexFiles(rootIndexRows, localFileNames).ConfigureAwait(false);
 
             return rootIndexRows;
         }
@@ -67,13 +67,13 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
             var batchTasks = indexValueBatches.Select(WriteBatchToFile);
-            return await Task.WhenAll(batchTasks);
+            return await Task.WhenAll(batchTasks).ConfigureAwait(false);
         }
 
         private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<IndexValueModel> batch)
         {
             var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            return await WriteIndexFile(batch, outputFilename);
+            return await WriteIndexFile(batch, outputFilename).ConfigureAwait(false);
         }
 
         private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
@@ -84,16 +84,16 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             outputStreamWriter.AutoFlush = false;
             var bloomFilter = GetBloomFilter();
             var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile, bloomFilter);
-            await jsonWriter.FlushAsync();
+            await jsonWriter.FlushAsync().ConfigureAwait(false);
             var newMetadataOffset = outputFile.Position;
-            var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, jsonWriter);
+            var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, jsonWriter).ConfigureAwait(false);
             rootIndexRow.FileName = outputFilename;
-            await outputStreamWriter.FlushAsync();
+            await outputStreamWriter.FlushAsync().ConfigureAwait(false);
             var bloomOffset = outputFile.Position;
             bloomFilter.Serialize(outputFile);
-            await outputFile.FlushAsync();
+            await outputFile.FlushAsync().ConfigureAwait(false);
             outputFile.WriteBinaryLongsToStream(new[] { newMetadataOffset, bloomOffset });
-            await outputFile.FlushAsync();
+            await outputFile.FlushAsync().ConfigureAwait(false);
             return rootIndexRow;
         }
 
@@ -106,7 +106,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             foreach (var indexValue in indexValues)
             {
                 _serializer.Serialize(jsonWriter, indexValue);
-                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine).ConfigureAwait(false);
                 bloomFilter.Add(indexValue.Value);
                 yield return new FileRowMetadata(stream.Position, indexValue.Value);
             }
@@ -115,14 +115,14 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         private async Task<RootIndexRow> AddUpdatedMetadataToFile(IAsyncEnumerable<FileRowMetadata> rowsMetadata,
             JsonWriter jsonWriter)
         {
-            var metadataSections = await CreateMetadataFromRows(rowsMetadata).ToListAsync();
+            var metadataSections = await CreateMetadataFromRows(rowsMetadata).ToListAsync().ConfigureAwait(false);
             var minValue = metadataSections.First().Min;
             var maxValue = metadataSections.Last().Max;
             var rootIndexRow = new RootIndexRow(null, minValue, maxValue, null);
             foreach (var metadataSection in metadataSections)
             {
                 _serializer.Serialize(jsonWriter, metadataSection);
-                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine);
+                await jsonWriter.WriteWhitespaceAsync(Environment.NewLine).ConfigureAwait(false);
             }
 
             return rootIndexRow;
@@ -143,11 +143,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         private async IAsyncEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IAsyncEnumerable<FileRowMetadata> rowMetadatas)
         {
             var enumerator = rowMetadatas.GetAsyncEnumerator();
-            while (await enumerator.MoveNextAsync())
+            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
             {
                 var currentRow = enumerator.Current;
                 var min = currentRow.Value;
-                var maxRow = await enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow);
+                var maxRow = await enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow).ConfigureAwait(false);
 
                 var max = maxRow!.Value;
                 var offset = currentRow.Offset;
@@ -173,7 +173,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         private async Task UploadIndexFiles(IEnumerable<RootIndexRow> rootIndexRows, IReadOnlyDictionary<string, string> localFileNames)
         {
             var tasks = rootIndexRows.Select(row => UploadFile(row, localFileNames));
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         private Task UploadFile(RootIndexRow row, IReadOnlyDictionary<string, string> localFileNames)
