@@ -14,7 +14,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
         public CsvFileReader(Stream stream)
         {
             _streamReader = new StreamReader(stream);
-            _csvReader = new CsvReader(_streamReader);
+            _csvReader = new CsvReader(_streamReader) { BufferSize = 3276800 };
         }
 
         public IList<string> ReadHeaders()
