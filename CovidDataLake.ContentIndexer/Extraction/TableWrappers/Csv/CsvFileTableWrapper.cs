@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using CovidDataLake.Common;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
@@ -12,13 +11,13 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
     {
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly StringWrapper _originFilename;
-        private readonly List<StringWrapper> _defaultOriginFilenames;
+        private readonly List<StringWrapper> _defaultOriginFileNames;
 
         public CsvFileTableWrapper(string filename, string originFilename)
         {
             Filename = filename;
             _originFilename = new StringWrapper(originFilename);
-            _defaultOriginFilenames = new List<StringWrapper> { _originFilename };
+            _defaultOriginFileNames = new List<StringWrapper> { _originFilename };
         }
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()
@@ -34,7 +33,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                     columnIndex => columnNames[columnIndex],
                     columnIndex => columnIndex
                 );
-                var columnCollections = columnsRange.Select(_ => new ColumnWriter()).ToList();
+                var columnCollections = columnsRange.Select(_ => new ColumnChannelWriter()).ToList();
                 var produceTask = Task.Run(async () => await WriteColumnsToCollections(columnCollections, lines).ConfigureAwait(false));
                 produceTask.ContinueWith(_ =>
                 {
@@ -43,7 +42,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 });
                 var columnValues = columnLocations.ToDictionary(
                         column => column.Key,
-                        column => GetColumnFromChannel(columnCollections[column.Value]));
+                        column => columnCollections[column.Value].GetColumnEntries(_defaultOriginFileNames));
                 return columnValues;
             }
             catch (Exception)
@@ -53,28 +52,20 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
 
         }
 
-        private IAsyncEnumerable<RawEntry> GetColumnFromChannel(ColumnWriter rawEntries)
-        {
-            return rawEntries.ColumnValues
-                .NotNull()
-                .Distinct()
-                .Select(value => new RawEntry(_defaultOriginFilenames, value));
-        }
-
-        private static async Task WriteColumnsToCollections(IReadOnlyList<ColumnWriter> columnCollections, IEnumerable<IList<string>> lines)
+        private static async Task WriteColumnsToCollections(IReadOnlyList<IColumnWriter> columnCollections, IEnumerable<IList<string>> lines)
         {
             foreach (var line in lines)
             {
-                await WriteLineToColumnFiles(line, columnCollections).ConfigureAwait(false);
+                await WriteLineToColumnWriters(line, columnCollections).ConfigureAwait(false);
             }
 
             foreach (var columnCollection in columnCollections)
             {
-                columnCollection.FinishColumn();
+                columnCollection.FinishWriting();
             }
         }
 
-        private static async Task WriteLineToColumnFiles(IList<string> line, IReadOnlyList<ColumnWriter> columnCollections)
+        private static async Task WriteLineToColumnWriters(IList<string> line, IReadOnlyList<IColumnWriter> columnCollections)
         {
             for (int i = 0; i < line.Count; i++)
             {
@@ -84,7 +75,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
                 }
 
                 var column = line[i];
-                await columnCollections[i].WriteValue(column).ConfigureAwait(false);
+                await columnCollections[i].WriteValueAsync(column).ConfigureAwait(false);
             }
         }
 

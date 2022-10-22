@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,11 +25,6 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         public async Task IndexTableAsync(IEnumerable<IFileTableWrapper> tableWrappers)
         {
             var allColumns = GetAllColumns(tableWrappers);
-            if (!allColumns.Any())
-            {
-                return;
-            }
-
             var lockTask = _rootIndexAccess.EnterBatch();
             lockTask.Wait();
             var columnUpdates = await UpdateAllColumns(allColumns).ConfigureAwait(false);

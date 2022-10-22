@@ -11,97 +11,80 @@ class JsonFileTableWrapper : IFileTableWrapper
 {
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly StringWrapper _originFilename;
-    private readonly List<StringWrapper> _defaultOriginFilenames;
+    private readonly List<StringWrapper> _defaultOriginFileNames;
     private readonly JsonSerializer _serializer;
 
+    private readonly HashSet<JTokenType> AllowedTokenTypes;
     public JsonFileTableWrapper(string filename, string originFilename)
     {
         Filename = filename;
         _originFilename = new StringWrapper(originFilename);
-        _defaultOriginFilenames = new List<StringWrapper> { _originFilename };
+        _defaultOriginFileNames = new List<StringWrapper> { _originFilename };
         _serializer = new JsonSerializer();
+        JTokenType[] allowedTokenTypes = { JTokenType.Boolean, JTokenType.Date, JTokenType.Float, JTokenType.Guid, JTokenType.Integer, JTokenType.String, JTokenType.Uri };
+        AllowedTokenTypes = new HashSet<JTokenType>(allowedTokenTypes);
     }
     public string Filename { get; set; }
     public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()
     {
-        try
+        var items = GetItems();
+        var columnWriters = new Dictionary<string, IColumnWriter>();
+        foreach (var item in items)
         {
-            var columns = GetColumnNames();
-            return columns.ToDictionary(col => col, GetColumnValues);
+            WriteItemToColumns(item, columnWriters);
         }
-        catch
+        foreach (var columnWriter in columnWriters.Values)
         {
-            return Enumerable.Empty<KeyValuePair<string, IAsyncEnumerable<RawEntry>>>();
+            columnWriter.FinishWriting();
         }
 
+        return columnWriters.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.GetColumnEntries(_defaultOriginFileNames));
     }
 
-    private IEnumerable<string> GetColumnNames()
+    private void WriteItemToColumns(IDictionary<string, string> item, IDictionary<string, IColumnWriter> columnWriters)
+    {
+        foreach (var (column, value) in item)
+        {
+            if (!columnWriters.ContainsKey(column))
+            {
+                columnWriters[column] = new ColumnFileWriter();
+            }
+
+            var columnWriter = columnWriters[column];
+            columnWriter.WriteValue(value);
+        }
+    }
+
+    private IEnumerable<IDictionary<string, string>> GetItems()
     {
         using var fileStream = File.OpenRead(Filename);
         using var reader = new StreamReader(fileStream);
         using var jsonReader = new JsonTextReader(reader);
-        var columns = new HashSet<string>();
-        var items = GetItems(jsonReader);
-
-        foreach (var item in items)
+        while (jsonReader.Read())
         {
-            columns.UnionWith(item.Keys);
-        }
-
-        return columns;
-    }
-
-    private IEnumerable<Dictionary<string, string>> GetItems(JsonReader reader)
-    {
-        while (reader.Read())
-        {
-            if (reader.TokenType != JsonToken.StartObject)
+            if (jsonReader.TokenType != JsonToken.StartObject)
             {
                 continue;
             }
 
-            var currentItem = _serializer.Deserialize<JObject>(reader);
-            Dictionary<string, string> convertedItem;
-            try
-            {
-                convertedItem = currentItem?.ToObject<Dictionary<string, string>>();
-            }
-            catch
-            {
-                continue;
-            }
-
-            if (convertedItem != null)
-            {
-                yield return convertedItem;
-            }
-
+            var currentItem = _serializer.Deserialize<Dictionary<string, JToken>>(jsonReader);
+            yield return GetPropertiesFromObject(currentItem);
         }
     }
 
-    private async IAsyncEnumerable<RawEntry> GetColumnValues(string columnName)
+    private IDictionary<string, string> GetPropertiesFromObject(Dictionary<string, JToken> obj)
     {
-        await using var fileStream = File.OpenRead(Filename);
-        using var reader = new StreamReader(fileStream);
-        using var jsonReader = new JsonTextReader(reader);
-        var values = new HashSet<string>();
-        var items = GetItems(jsonReader);
-        foreach (var item in items)
+        var itemDict = new Dictionary<string, string>();
+        foreach (var (key, value) in obj)
         {
-            if (!item.ContainsKey(columnName))
+            if (value == null || !AllowedTokenTypes.Contains(value.Type))
             {
                 continue;
             }
 
-            var value = item[columnName];
-            if (value == null || values.Contains(value))
-            {
-                continue;
-            }
-
-            values.Add(value);
-            yield return new RawEntry(_defaultOriginFilenames, value);
+            itemDict[key] = value.ToString(Formatting.None);
         }
+
+        return itemDict;
     }
 }
