@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CovidDataLake.Common;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 
 namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers

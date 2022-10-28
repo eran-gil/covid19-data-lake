@@ -1,5 +1,4 @@
 ﻿using Amazon.Runtime;
-using Amazon.S3;
 using CovidDataLake.Cloud;
 using CovidDataLake.Cloud.Amazon;
 using CovidDataLake.Cloud.Amazon.Configuration;
@@ -42,9 +41,6 @@ namespace CovidDataLake.WebApi
             services.BindConfigurationToContainer<RedisIndexCacheConfiguration>(Configuration, "RedisIndexCache");
             services.BindConfigurationToContainer<AmazonRootIndexFileConfiguration>(Configuration, "AmazonRootIndex");
             services.BindConfigurationToContainer<BasicAmazonIndexFileConfiguration>(Configuration, "AmazonIndexFile");
-            var storageConfig = Configuration.GetSection("AmazonGeneralConfig").Get<AmazonStorageConfig>();
-            var amazonS3Config = new AmazonS3Config { ServiceURL = storageConfig.ServiceUrl };
-            services.AddSingleton(amazonS3Config);
             var redisConnectionString = Configuration.GetValue<string>("Redis");
             var redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
             services.AddSingleton<IConnectionMultiplexer>(redisConnection);

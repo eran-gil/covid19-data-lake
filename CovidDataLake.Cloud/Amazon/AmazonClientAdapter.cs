@@ -10,9 +10,9 @@ namespace CovidDataLake.Cloud.Amazon
     {
         private readonly AmazonS3Client _awsClient;
 
-        public AmazonClientAdapter(AmazonS3Config config, AWSCredentials credentials)
+        public AmazonClientAdapter(AWSCredentials credentials)
         {
-            config.UseAccelerateEndpoint = true;
+            var config = new AmazonS3Config { UseAccelerateEndpoint = true };
             _awsClient = new AmazonS3Client(credentials, config);
         }
         public async Task UploadObjectAsync(string? bucketName, string objectKey, string sourceFilename)
@@ -81,21 +81,31 @@ namespace CovidDataLake.Cloud.Amazon
 
         public async Task<IEnumerable<string>> ListObjectsAsync(string? bucketName, string path)
         {
-            var request = new ListObjectsV2Request() { BucketName = bucketName, Prefix = path};
-            try
+            var results = new List<string>();
+            var shouldContinue = true;
+            while (shouldContinue)
             {
-                var listObjectsResponse = await _awsClient.ListObjectsV2Async(request).ConfigureAwait(false);
-                if (listObjectsResponse.HttpStatusCode != HttpStatusCode.OK)
+                try
                 {
-                    return Enumerable.Empty<string>();
+                    var request = new ListObjectsV2Request() { BucketName = bucketName, Prefix = path, StartAfter = results.LastOrDefault()};
+                    var listObjectsResponse = await _awsClient.ListObjectsV2Async(request).ConfigureAwait(false);
+                    if (listObjectsResponse.HttpStatusCode != HttpStatusCode.OK)
+                    {
+                        return Enumerable.Empty<string>();
+                    }
+                    var objectNames = listObjectsResponse.S3Objects.Select(o => o.Key);
+                    results.AddRange(objectNames);
+                    shouldContinue = listObjectsResponse.IsTruncated;
                 }
-                var objectNames = listObjectsResponse.S3Objects.Select(o => o.Key);
-                return objectNames;
+                catch
+                {
+                    shouldContinue = false;
+                }
             }
-            catch
-            {
-                return Enumerable.Empty<string>();
-            }
+            
+
+            return results;
+
 
         }
 
