@@ -39,7 +39,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return new KeyValuePair<string, string>(indexFilename, downloadedFilename);
         }
 
-        public static IDictionary<string, IndexValueModel> GetIndexFromFile(string indexLocalFilename)
+        public static IDictionary<string, HashSet<string>> GetIndexFromFile(string indexLocalFilename)
         {
             var originalIndexValues = Enumerable.Empty<IndexValueModel>();
 
@@ -48,10 +48,10 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             {
                 originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
             }
-            var indexDictionary = new Dictionary<string, IndexValueModel>();
+            var indexDictionary = new Dictionary<string, HashSet<string>>();
             foreach (var indexValue in originalIndexValues)
             {
-                indexDictionary[indexValue.Value] = indexValue;
+                indexDictionary[indexValue.Value] = indexValue.GetUniqueFiles();
             }
 
             return indexDictionary;

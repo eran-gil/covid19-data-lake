@@ -22,5 +22,10 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
             _files.UnionWith(files);
         }
 
+        public HashSet<string> GetUniqueFiles()
+        {
+            return _files;
+        }
+
     }
 }

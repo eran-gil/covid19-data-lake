@@ -43,17 +43,16 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
         {
             var (indexName, localFilename) = await _indexReader.DownloadIndexFile(columnName, indexFilename).ConfigureAwait(false);
             var indexDictionary = NeedleInHaystackIndexReader.GetIndexFromFile(localFilename);
-            var newIndexValues = values.Select(rawValue => new IndexValueModel(rawValue.Value, rawValue.OriginFilenames));
 
-            await foreach (var indexValue in newIndexValues.ConfigureAwait(false))
+            await foreach (var indexValue in values)
             {
                 if (indexDictionary.ContainsKey(indexValue.Value))
                 {
-                    indexDictionary[indexValue.Value].AddFiles(indexValue.Files);
+                    indexDictionary[indexValue.Value].UnionWith(indexValue.OriginFilenames);
                 }
                 else
                 {
-                    indexDictionary[indexValue.Value] = indexValue;
+                    indexDictionary[indexValue.Value] = new HashSet<string>(indexValue.OriginFilenames);
                 }
             }
 
@@ -65,18 +64,19 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return rootIndexRows;
         }
 
-        private async Task<RootIndexRow[]> WriteIndexToFiles(IDictionary<string, IndexValueModel> indexDictionary)
+        private async Task<RootIndexRow[]> WriteIndexToFiles(IDictionary<string, HashSet<string>> indexDictionary)
         {
-            var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
+            var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
             var batchTasks = indexValueBatches.Select(WriteBatchToFile);
             return await Task.WhenAll(batchTasks).ConfigureAwait(false);
         }
 
-        private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<IndexValueModel> batch)
+        private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<KeyValuePair<string, HashSet<string>>> batch)
         {
+            var convertedBatch = batch.Select(kvp => new IndexValueModel(kvp.Key, kvp.Value));
             var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());
-            return await WriteIndexFile(batch, outputFilename).ConfigureAwait(false);
+            return await WriteIndexFile(convertedBatch, outputFilename).ConfigureAwait(false);
         }
 
         private async Task<RootIndexRow> WriteIndexFile(IEnumerable<IndexValueModel> indexValues, string outputFilename)
