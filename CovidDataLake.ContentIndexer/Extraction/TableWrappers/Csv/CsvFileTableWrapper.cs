@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,13 +12,13 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers.Csv
     {
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly StringWrapper _originFilename;
-        private readonly List<StringWrapper> _defaultOriginFileNames;
+        private readonly ImmutableHashSet<StringWrapper> _defaultOriginFileNames;
 
         public CsvFileTableWrapper(string filename, string originFilename)
         {
             Filename = filename;
             _originFilename = new StringWrapper(originFilename);
-            _defaultOriginFileNames = new List<StringWrapper> { _originFilename };
+            _defaultOriginFileNames = ImmutableHashSet.Create(_originFilename);
         }
         public string Filename { get; set; }
         public IEnumerable<KeyValuePair<string, IAsyncEnumerable<RawEntry>>> GetColumns()

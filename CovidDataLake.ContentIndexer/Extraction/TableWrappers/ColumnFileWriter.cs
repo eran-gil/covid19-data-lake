@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -41,7 +42,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
             AddDistinctValue(value);
         }
 
-        public override IAsyncEnumerable<RawEntry> GetColumnEntries(List<StringWrapper> originFileNames)
+        public override IAsyncEnumerable<RawEntry> GetColumnEntries(ImmutableHashSet<StringWrapper> originFileNames)
         {
             var rawValues = GetValues();
             return GetFilteredEntries(rawValues.ToAsyncEnumerable(), originFileNames);

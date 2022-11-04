@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction.Models;
 
@@ -8,6 +9,6 @@ internal interface IColumnWriter
 {
     void WriteValue(string value);
     Task WriteValueAsync(string value);
-    IAsyncEnumerable<RawEntry> GetColumnEntries(List<StringWrapper> originFileNames);
+    IAsyncEnumerable<RawEntry> GetColumnEntries(ImmutableHashSet<StringWrapper> originFileNames);
     void FinishWriting();
 }

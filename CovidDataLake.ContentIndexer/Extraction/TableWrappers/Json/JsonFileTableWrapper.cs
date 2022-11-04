@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using CovidDataLake.ContentIndexer.Extraction.Models;
@@ -11,7 +12,7 @@ class JsonFileTableWrapper : IFileTableWrapper
 {
     // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
     private readonly StringWrapper _originFilename;
-    private readonly List<StringWrapper> _defaultOriginFileNames;
+    private readonly ImmutableHashSet<StringWrapper> _defaultOriginFileNames;
     private readonly JsonSerializer _serializer;
 
     private readonly HashSet<JTokenType> AllowedTokenTypes;
@@ -19,7 +20,7 @@ class JsonFileTableWrapper : IFileTableWrapper
     {
         Filename = filename;
         _originFilename = new StringWrapper(originFilename);
-        _defaultOriginFileNames = new List<StringWrapper> { _originFilename };
+        _defaultOriginFileNames = ImmutableHashSet.Create(_originFilename);
         _serializer = new JsonSerializer();
         JTokenType[] allowedTokenTypes = { JTokenType.Boolean, JTokenType.Date, JTokenType.Float, JTokenType.Guid, JTokenType.Integer, JTokenType.String, JTokenType.Uri };
         AllowedTokenTypes = new HashSet<JTokenType>(allowedTokenTypes);

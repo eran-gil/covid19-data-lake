@@ -1,5 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +8,7 @@ using CovidDataLake.Cloud.Amazon.Configuration;
 using CovidDataLake.Common;
 using CovidDataLake.Common.Files;
 using CovidDataLake.ContentIndexer.Extensions;
+using CovidDataLake.ContentIndexer.Extraction.Models;
 using CovidDataLake.ContentIndexer.Indexing.Models;
 
 namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
@@ -39,7 +40,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return new KeyValuePair<string, string>(indexFilename, downloadedFilename);
         }
 
-        public static IDictionary<string, HashSet<string>> GetIndexFromFile(string indexLocalFilename)
+        public static IDictionary<string, ImmutableHashSet<StringWrapper>> GetIndexFromFile(string indexLocalFilename)
         {
             var originalIndexValues = Enumerable.Empty<IndexValueModel>();
 
@@ -48,7 +49,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             {
                 originalIndexValues = GetIndexValuesFromFile(fileStream.BaseStream);
             }
-            var indexDictionary = new Dictionary<string, HashSet<string>>();
+            var indexDictionary = new Dictionary<string, ImmutableHashSet<StringWrapper>>();
             foreach (var indexValue in originalIndexValues)
             {
                 indexDictionary[indexValue.Value] = indexValue.GetUniqueFiles();

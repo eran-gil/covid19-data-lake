@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,11 +48,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             {
                 if (indexDictionary.ContainsKey(indexValue.Value))
                 {
-                    indexDictionary[indexValue.Value].UnionWith(indexValue.OriginFilenames);
+                    indexDictionary[indexValue.Value] = indexDictionary[indexValue.Value].Union(indexValue.GetFileNames());
                 }
                 else
                 {
-                    indexDictionary[indexValue.Value] = new HashSet<string>(indexValue.OriginFilenames);
+                    indexDictionary[indexValue.Value] = indexValue.GetFileNames();
                 }
             }
 
@@ -64,7 +64,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return rootIndexRows;
         }
 
-        private async Task<RootIndexRow[]> WriteIndexToFiles(IDictionary<string, HashSet<string>> indexDictionary)
+        private async Task<RootIndexRow[]> WriteIndexToFiles(IDictionary<string, ImmutableHashSet<StringWrapper>> indexDictionary)
         {
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
@@ -72,7 +72,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return await Task.WhenAll(batchTasks).ConfigureAwait(false);
         }
 
-        private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<KeyValuePair<string, HashSet<string>>> batch)
+        private async Task<RootIndexRow> WriteBatchToFile(IEnumerable<KeyValuePair<string, ImmutableHashSet<StringWrapper>>> batch)
         {
             var convertedBatch = batch.Select(kvp => new IndexValueModel(kvp.Key, kvp.Value));
             var outputFilename = Path.Combine(CommonKeys.TEMP_FOLDER_NAME, Guid.NewGuid().ToString());

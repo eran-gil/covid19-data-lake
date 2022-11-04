@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 using CovidDataLake.ContentIndexer.Extraction.Models;
@@ -18,7 +19,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
 
         public abstract Task WriteValueAsync(string value);
 
-        public abstract IAsyncEnumerable<RawEntry> GetColumnEntries(List<StringWrapper> originFileNames);
+        public abstract IAsyncEnumerable<RawEntry> GetColumnEntries(ImmutableHashSet<StringWrapper> originFileNames);
 
         public virtual void FinishWriting()
         {
@@ -35,7 +36,7 @@ namespace CovidDataLake.ContentIndexer.Extraction.TableWrappers
             _distinctValues.Add(value);
         }
 
-        protected static IAsyncEnumerable<RawEntry> GetFilteredEntries(IAsyncEnumerable<string> values, List<StringWrapper> originFileNames)
+        protected static IAsyncEnumerable<RawEntry> GetFilteredEntries(IAsyncEnumerable<string> values, ImmutableHashSet<StringWrapper> originFileNames)
         {
             return values.Select(value => new RawEntry(originFileNames, value));
         }
