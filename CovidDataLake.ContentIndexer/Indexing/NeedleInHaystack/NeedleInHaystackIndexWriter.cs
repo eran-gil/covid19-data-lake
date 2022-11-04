@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -47,11 +47,14 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 
             await foreach (var indexValue in newIndexValues.ConfigureAwait(false))
             {
-                indexDictionary.AddOrUpdate(indexValue.Value, indexValue, (_, currentValue) =>
+                if (indexDictionary.ContainsKey(indexValue.Value))
                 {
-                    currentValue.AddFiles(indexValue.Files);
-                    return currentValue;
-                });
+                    indexDictionary[indexValue.Value].AddFiles(indexValue.Files);
+                }
+                else
+                {
+                    indexDictionary[indexValue.Value] = indexValue;
+                }
             }
 
             var rootIndexRows = await WriteIndexToFiles(indexDictionary).ConfigureAwait(false);
@@ -62,7 +65,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return rootIndexRows;
         }
 
-        private async Task<RootIndexRow[]> WriteIndexToFiles(ConcurrentDictionary<string, IndexValueModel> indexDictionary)
+        private async Task<RootIndexRow[]> WriteIndexToFiles(IDictionary<string, IndexValueModel> indexDictionary)
         {
             var orderedIndexValues = indexDictionary.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value);
             var indexValueBatches = orderedIndexValues.Chunk(_maxRowsPerFile);
