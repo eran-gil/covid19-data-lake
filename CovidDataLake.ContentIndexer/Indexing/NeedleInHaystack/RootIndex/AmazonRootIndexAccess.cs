@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,9 +40,12 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
         public async Task EnterBatch()
         {
             await _lockMechanism.TakeLock(CommonKeys.ROOT_INDEX_FILE_LOCK_KEY, _lockTimeSpan);
-            _rootIndexLocalFileName = await GetOrCreateRootIndexFile();
-            await LoadIndexToCache();
-            _isCacheLoaded = true;
+            if (!_isCacheLoaded)
+            {
+                _rootIndexLocalFileName = await GetOrCreateRootIndexFile();
+                await LoadIndexToCache();
+                _isCacheLoaded = true;
+            }
         }
 
         public async Task ExitBatch(bool shouldUpdate = false)

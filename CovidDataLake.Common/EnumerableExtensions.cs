@@ -34,12 +34,12 @@ namespace CovidDataLake.Common
             await range.ForEachAwaitAsync(async item => await channel.Writer.WriteAsync(item));
         }
 
-        public static async Task<T?> NthItemOrLast<T>(this IAsyncEnumerator<T?> enumerator, int n, T? defaultValue=default)
+        public static T? NthItemOrLast<T>(this IEnumerator<T?> enumerator, int n, T? defaultValue=default)
         {
             var item = defaultValue;
             for (var i = 0; i < n; i++)
             {
-                if (!(await enumerator.MoveNextAsync().ConfigureAwait(false)))
+                if (!(enumerator.MoveNext()))
                 {
                     break;
                 }

@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Linq;
 using CovidDataLake.ContentIndexer.Extraction.Models;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
@@ -24,6 +25,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
             _files = _files.Union(files);
         }
         public string Value { get; set; }
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<string> Files { get { return _files.Select(f => f.Value).ToList(); } set { _files = ImmutableHashSet.CreateRange(value.Select(f => new StringWrapper(f))); } }
 
 

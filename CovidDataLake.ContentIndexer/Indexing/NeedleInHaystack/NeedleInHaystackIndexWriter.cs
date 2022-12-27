@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
@@ -59,7 +59,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             var rootIndexRows = await WriteIndexToFiles(indexDictionary).ConfigureAwait(false);
             var localFileNames = OverrideLocalFileNames(indexName, columnName, rootIndexRows);
 
-            await UploadIndexFiles(rootIndexRows, localFileNames).ConfigureAwait(false);
+           await UploadIndexFiles(rootIndexRows, localFileNames).ConfigureAwait(false);
 
             return rootIndexRows;
         }
@@ -86,7 +86,7 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             using var jsonWriter = new JsonTextWriter(outputStreamWriter);
             outputStreamWriter.AutoFlush = false;
             var bloomFilter = GetBloomFilter();
-            var rowsMetadata = WriteIndexValuesToFile(indexValues, jsonWriter, outputFile, bloomFilter);
+            var rowsMetadata = await WriteIndexValuesToFile(indexValues, jsonWriter, outputFile, bloomFilter).ToListAsync();
             await jsonWriter.FlushAsync().ConfigureAwait(false);
             var newMetadataOffset = outputFile.Position;
             var rootIndexRow = await AddUpdatedMetadataToFile(rowsMetadata, jsonWriter).ConfigureAwait(false);
@@ -110,12 +110,13 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             {
                 _serializer.Serialize(jsonWriter, indexValue);
                 await jsonWriter.WriteWhitespaceAsync(Environment.NewLine).ConfigureAwait(false);
+                await jsonWriter.FlushAsync().ConfigureAwait(false);
                 bloomFilter.Add(indexValue.Value);
                 yield return new FileRowMetadata(stream.Position, indexValue.Value);
             }
         }
 
-        private async Task<RootIndexRow> AddUpdatedMetadataToFile(IAsyncEnumerable<FileRowMetadata> rowsMetadata,
+        private async Task<RootIndexRow> AddUpdatedMetadataToFile(IEnumerable<FileRowMetadata> rowsMetadata,
             JsonWriter jsonWriter)
         {
             var metadataSections = await CreateMetadataFromRows(rowsMetadata).ToListAsync().ConfigureAwait(false);
@@ -143,14 +144,14 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
             return new BasicBloomFilter(bloomFilterStream);
         }
 
-        private async IAsyncEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IAsyncEnumerable<FileRowMetadata> rowMetadatas)
+        private async IAsyncEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IEnumerable<FileRowMetadata> rowMetadatas)
         {
-            var enumerator = rowMetadatas.GetAsyncEnumerator();
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            var enumerator = rowMetadatas.GetEnumerator();
+            while (enumerator.MoveNext())
             {
                 var currentRow = enumerator.Current;
                 var min = currentRow.Value;
-                var maxRow = await enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow).ConfigureAwait(false);
+                var maxRow = enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow);
 
                 var max = maxRow!.Value;
                 var offset = currentRow.Offset;
