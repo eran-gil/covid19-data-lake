@@ -31,16 +31,18 @@ namespace CovidDataLake.Queries.Executors
             return queryType == "NeedleInHaystack";
         }
 
-        public override Task<IEnumerable<QueryResult>> Execute(NeedleInHaystackQuery query)
+        public override async Task<IEnumerable<QueryResult>> Execute(NeedleInHaystackQuery query)
         {
             if (query.Conditions == null || !query.Conditions.Any())
             {
                 throw new InvalidQueryFormatException();
             }
 
-            var queryResults = query.Conditions.Select(async condition => await GetFilesMatchingCondition(condition)).ToTaskResults().SelectMany(r => r).ToList();
+            var queryResultsTasks = query.Conditions.Select(GetFilesMatchingCondition);
+            var queryResults = await Task.WhenAll(queryResultsTasks);
+            var allQueryResults = queryResults.SelectMany(r => r).ToList();
             var filteredResults = Enumerable.Empty<IGrouping<string, QueryResult>>();
-            var groupedResults = queryResults.GroupBy(result => result["FileName"].ToString());
+            var groupedResults = allQueryResults.GroupBy(result => result["FileName"].ToString());
             filteredResults = query.Relation switch
             {
                 ConditionRelation.And => groupedResults.Where(group => group.Count() == query.Conditions.Count()),
@@ -51,7 +53,7 @@ namespace CovidDataLake.Queries.Executors
             var mergedResults =
                 filteredResults.Select(CreateQueryResultFromGroup);
 
-            return Task.FromResult(mergedResults);
+            return mergedResults;
         }
 
         private static QueryResult CreateQueryResultFromGroup(IGrouping<string, QueryResult> @group)
