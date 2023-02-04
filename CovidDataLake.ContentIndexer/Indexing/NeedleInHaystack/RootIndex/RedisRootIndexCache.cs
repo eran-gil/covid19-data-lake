@@ -58,33 +58,32 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack.RootIndex
 
         public Task<string> GetFileNameForColumnAndValue(string column, string val)
         {
-            var db = _connection.GetDatabase();
             var redisSetKey = GetRedisKeyForColumn(column);
             if (_emptyKeysCache.TryGetValue(redisSetKey, out _))
             {
                 return _nullResult;
             }
             var redisValuesToFilesKey = GetRedisValuesToFilesKeyForColumn(column);
-            var indexFileMaxValue = SafeGetSortedRange(val, db, redisSetKey).FirstOrDefault();
+            var indexFileMaxValue = SafeGetSortedRange(val, redisSetKey).FirstOrDefault();
             if (indexFileMaxValue.IsNull)
             {
                 _emptyKeysCache.Set(redisSetKey, true, TimeSpan.FromMinutes(1));
                 return _nullResult;
             }
-            var indexFile = db.HashGet(redisValuesToFilesKey, indexFileMaxValue);
+            var indexFile = _db.HashGet(redisValuesToFilesKey, indexFileMaxValue);
             if (indexFile == default) return _nullResult;
             var indexFileName = indexFile.ToString();
             return Task.FromResult(indexFileName);
         }
 
-        private static IEnumerable<RedisValue> SafeGetSortedRange(string val, IDatabase db, string redisSetKey)
+        private IEnumerable<RedisValue> SafeGetSortedRange(string val, string redisSetKey)
         {
             var attempts = 0;
             while (attempts < 5)
             {
                 try
                 {
-                    return db.SortedSetRangeByValue(redisSetKey, val, take: 1);
+                    return _db.SortedSetRangeByValue(redisSetKey, val, take: 1);
                 }
                 catch
                 {
