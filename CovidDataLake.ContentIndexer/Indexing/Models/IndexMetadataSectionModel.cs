@@ -1,4 +1,6 @@
-﻿namespace CovidDataLake.ContentIndexer.Indexing.Models
+﻿using Newtonsoft.Json;
+
+namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
     public class IndexMetadataSectionModel
     {
@@ -12,8 +14,11 @@
             Max = max;
             Offset = offset;
         }
+        [JsonProperty(Order = 1)]
         public string Min { get; set; }
+        [JsonProperty(Order = 2)]
         public string Max { get; set; }
+        [JsonProperty(Order = 3)]
         public long Offset { get; set; }
     }
 }

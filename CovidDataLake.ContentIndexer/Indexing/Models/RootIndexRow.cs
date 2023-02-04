@@ -1,4 +1,5 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
@@ -17,9 +18,13 @@ namespace CovidDataLake.ContentIndexer.Indexing.Models
             FileName = fileName;
         }
 
+        [JsonProperty(Order = 1)]
         public string ColumnName { get; set; }
+        [JsonProperty(Order = 2)]
         public string Min { get; set; }
+        [JsonProperty(Order = 3)]
         public string Max { get; set; }
+        [JsonProperty(Order = 4)]
         public string FileName { get; set; }
 
         public int CompareTo(RootIndexRow other)

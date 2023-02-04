@@ -1,4 +1,6 @@
-﻿namespace CovidDataLake.ContentIndexer.Indexing.Models
+﻿using Newtonsoft.Json;
+
+namespace CovidDataLake.ContentIndexer.Indexing.Models
 {
     public class FileRowMetadata
     {
@@ -8,7 +10,10 @@
             Value = value;
         }
 
-        public long Offset { get; set; }
+        [JsonProperty(Order = 1)]
         public string Value { get; set; }
+
+        [JsonProperty(Order = 2)]
+        public long Offset { get; set; }
     }
 }
