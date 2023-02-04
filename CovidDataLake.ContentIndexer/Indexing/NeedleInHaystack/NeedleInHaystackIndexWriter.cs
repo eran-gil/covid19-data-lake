@@ -146,11 +146,11 @@ namespace CovidDataLake.ContentIndexer.Indexing.NeedleInHaystack
 
         private async IAsyncEnumerable<IndexMetadataSectionModel> CreateMetadataFromRows(IEnumerable<FileRowMetadata> rowMetadatas)
         {
-            var enumerator = rowMetadatas.GetEnumerator();
+            using var enumerator = rowMetadatas.GetEnumerator();
             while (enumerator.MoveNext())
             {
                 var currentRow = enumerator.Current;
-                var min = currentRow.Value;
+                var min = currentRow?.Value;
                 var maxRow = enumerator.NthItemOrLast(_numOfRowsPerMetadataSection, currentRow);
 
                 var max = maxRow!.Value;
